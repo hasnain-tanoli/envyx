@@ -1,4 +1,4 @@
-import { pgTable, text, uuid, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, text, uuid, timestamp, index } from 'drizzle-orm/pg-core';
 import { user } from './users';
 import { env } from './env';
 
@@ -10,4 +10,7 @@ export const env_audit_log = pgTable('env_audit_log', {
     old_value: text('old_value'),
     new_value: text('new_value'),
     created_at: timestamp('created_at').defaultNow(),
-});
+}, (table) => ({
+    env_id_idx: index('env_id_idx').on(table.env_id),
+    created_at_idx: index('created_at_idx').on(table.created_at),
+}));

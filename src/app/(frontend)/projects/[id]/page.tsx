@@ -1,11 +1,15 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import EnvItem from '@/components/EnvItem';
 import Modal from '@/components/Modal';
-import { getEnvs, addEnv, deleteEnv, updateEnv } from '@/lib/api';
-import { Environment } from '@/types';
+import ConfirmDialog from '@/components/ConfirmDialog';
+import AuditTimeline from '@/components/AuditTimeline';
+import ConnectPanel from '@/components/ConnectPanel';
+import { getEnvs, addEnv, deleteEnv, updateEnv, getProject } from '@/lib/api';
+import { Environment, Project } from '@/types';
+import { useToast } from '@/components/Toast';
 import { 
     Plus, 
     ArrowLeft, 
@@ -17,75 +21,89 @@ import {
     Shield,
     Rocket,
     Copy,
-    Check
+    Check,
+    History,
+    Terminal,
+    Database
 } from 'lucide-react';
 import Link from 'next/link';
+
+type Tab = 'variables' | 'activity' | 'connect';
 
 export default function ProjectDetailPage() {
     const params = useParams();
     const projectId = params.id as string;
+    const { showToast } = useToast();
 
+    const [project, setProject] = useState<Project | null>(null);
     const [envs, setEnvs] = useState<Environment[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [activeTab, setActiveTab] = useState<Tab>('variables');
     
-    // Add Single/Bulk Modals
     const [singleOpen, setSingleOpen] = useState(false);
     const [bulkOpen, setBulkOpen] = useState(false);
     
-    // Form States
     const [newEnv, setNewEnv] = useState({ key: '', value: '' });
     const [envFile, setEnvFile] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [bulkCopied, setBulkCopied] = useState(false);
     const [hasMounted, setHasMounted] = useState(false);
+    const [confirmEnvOpen, setConfirmEnvOpen] = useState(false);
+    const [pendingDeleteEnvId, setPendingDeleteEnvId] = useState<string | null>(null);
 
-    const fetchEnvs = useCallback(async () => {
+    const fetchData = useCallback(async () => {
         if (!projectId) return;
         setLoading(true);
         setError(null);
         try {
-            const data = await getEnvs(projectId);
-            setEnvs(Array.isArray(data) ? data : []);
+            const [projectData, envsData] = await Promise.all([
+                getProject(projectId),
+                getEnvs(projectId)
+            ]);
+            setProject(projectData);
+            setEnvs(Array.isArray(envsData) ? envsData : []);
         } catch (error: unknown) {
-            console.error('Failed to fetch envs:', error);
+            console.error('Failed to fetch project data:', error);
             setError(error instanceof Error ? error.message : 'Unknown error');
+            showToast('Failed to sync with vault', 'error');
         } finally {
             setLoading(false);
         }
-    }, [projectId]);
+    }, [projectId, showToast]);
 
     useEffect(() => {
         setHasMounted(true);
-        fetchEnvs();
-    }, [fetchEnvs]);
+        fetchData();
+    }, [fetchData]);
 
-    async function handleAddSingle(e: React.FormEvent) {
+    const handleAddSingle = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newEnv.key || !newEnv.value) return;
         
         setSubmitting(true);
         try {
-            await addEnv(projectId, newEnv.key, newEnv.value);
+            await addEnv(projectId, newEnv.key.toUpperCase(), newEnv.value);
+            showToast(`Added ${newEnv.key.toUpperCase()}`, 'success');
             setSingleOpen(false);
             setNewEnv({ key: '', value: '' });
-            fetchEnvs();
-        } catch (error) {
-            console.error('Error adding env:', error);
+            fetchData();
+        } catch (_error) {
+            showToast('Failed to add variable', 'error');
         } finally {
             setSubmitting(false);
         }
-    }
+    }, [projectId, newEnv, fetchData, showToast]);
 
-    async function handleAddBulk(e: React.FormEvent) {
+    const handleAddBulk = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
         if (!envFile.trim()) return;
 
         setSubmitting(true);
         try {
-            // Simple .env parser
             const lines = envFile.split('\n');
+            let count = 0;
             for (const line of lines) {
                 const trimmed = line.trim();
                 if (!trimmed || trimmed.startsWith('#')) continue;
@@ -93,40 +111,52 @@ export default function ProjectDetailPage() {
                 const [key, ...valueParts] = trimmed.split('=');
                 if (key && valueParts.length > 0) {
                     const value = valueParts.join('=').trim().replace(/^['"](.*)['"]$/, '$1');
-                    await addEnv(projectId, key.trim(), value);
+                    await addEnv(projectId, key.trim().toUpperCase(), value);
+                    count++;
                 }
             }
+            showToast(`Imported ${count} variables`, 'success');
             setBulkOpen(false);
             setEnvFile('');
-            fetchEnvs();
-        } catch (error) {
-            console.error('Error adding bulk envs:', error);
+            fetchData();
+        } catch (_error) {
+            showToast('Bulk import failed', 'error');
         } finally {
             setSubmitting(false);
         }
-    }
+    }, [projectId, envFile, fetchData, showToast]);
 
-    async function handleDelete(envId: string) {
-        if (!confirm('Are you sure you want to delete this variable?')) return;
+    const handleDelete = useCallback((envId: string) => {
+        setPendingDeleteEnvId(envId);
+        setConfirmEnvOpen(true);
+    }, []);
+
+    const confirmDeleteEnv = useCallback(async () => {
+        if (!pendingDeleteEnvId) return;
+        setConfirmEnvOpen(false);
         try {
-            await deleteEnv(projectId, envId);
-            fetchEnvs();
-        } catch (error) {
-            console.error('Error deleting env:', error);
+            await deleteEnv(projectId, pendingDeleteEnvId);
+            showToast('Variable deleted', 'success');
+            fetchData();
+        } catch (_error) {
+            showToast('Delete failed', 'error');
+        } finally {
+            setPendingDeleteEnvId(null);
         }
-    }
+    }, [projectId, pendingDeleteEnvId, fetchData, showToast]);
 
-    async function handleUpdate(envId: string, key: string, value: string) {
+    const handleUpdate = useCallback(async (envId: string, key: string, value: string) => {
         try {
             await updateEnv(projectId, envId, key, value);
-            fetchEnvs();
+            showToast('Updated successfully', 'success');
+            fetchData();
         } catch (error) {
-            console.error('Error updating env:', error);
-            throw error; // Let EnvItem handle the error UI if it wants
+            showToast('Update failed', 'error');
+            throw error;
         }
-    }
+    }, [projectId, fetchData, showToast]);
 
-    async function handleBulkCopy() {
+    const handleBulkCopy = useCallback(async () => {
         if (!Array.isArray(envs) || envs.length === 0) return;
         
         const bulkText = envs
@@ -135,15 +165,26 @@ export default function ProjectDetailPage() {
             
         await navigator.clipboard.writeText(bulkText);
         setBulkCopied(true);
+        showToast('All variables copied to clipboard', 'success');
         setTimeout(() => setBulkCopied(false), 2000);
-    }
+    }, [envs, showToast]);
 
-    const filteredEnvs = Array.isArray(envs) 
-        ? envs.filter(e => e.key.toLowerCase().includes(searchTerm.toLowerCase()))
-        : [];
+    // OPTIMIZATION: Memoize filter result to prevent recalculation on every re-render
+    const filteredEnvs = useMemo(() => {
+        if (!Array.isArray(envs)) return [];
+        if (!searchTerm) return envs;
+        const lowSearch = searchTerm.toLowerCase();
+        return envs.filter(e => e.key.toLowerCase().includes(lowSearch));
+    }, [envs, searchTerm]);
+
+    const envColors: Record<string, string> = {
+        production: 'bg-red-500/10 text-red-400 border-red-500/20 shadow-red-500/10',
+        staging: 'bg-amber-500/10 text-amber-400 border-amber-500/20 shadow-amber-500/10',
+        development: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20 shadow-indigo-500/10'
+    };
 
     return (
-        <div className="max-w-6xl mx-auto px-6 py-12 animate-in">
+        <div className="max-w-6xl mx-auto px-6 py-12">
             {/* Header Area */}
             <div className="mb-10 flex flex-col gap-6">
                 <Link href="/projects" className="flex items-center gap-2 text-gray-500 hover:text-indigo-400 transition-colors w-fit font-medium">
@@ -151,17 +192,25 @@ export default function ProjectDetailPage() {
                     Back to Projects
                 </Link>
 
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-white/5 pb-10">
                     <div>
-                        <div className="flex items-center gap-2 mb-2 text-indigo-500">
-                            <Shield size={18} />
-                            <span className="text-xs font-bold uppercase tracking-widest">Secure Vault</span>
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="flex items-center gap-2 text-indigo-500">
+                                <Shield size={18} />
+                                <span className="text-xs font-bold uppercase tracking-widest">Secure Vault</span>
+                            </div>
+                            {project?.environment && (
+                                <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border shadow-sm ${envColors[project.environment] || envColors.development}`}>
+                                    {project.environment}
+                                </span>
+                            )}
                         </div>
-                        <h1 className="text-4xl font-black text-white tracking-tight">Project Variables</h1>
+                        <h1 className="text-4xl font-black text-white tracking-tight">{project?.name || 'Loading Project...'}</h1>
+                        <p className="text-gray-500 font-medium mt-1">{project?.description || 'Manage your encrypted secrets and access history.'}</p>
                     </div>
 
                     <div className="flex gap-4">
-                        {hasMounted && (
+                        {hasMounted && activeTab === 'variables' && (
                             <>
                                 <button 
                                     onClick={handleBulkCopy}
@@ -191,81 +240,110 @@ export default function ProjectDetailPage() {
                 </div>
             </div>
 
-            {/* Content Area */}
-            <div className="glass rounded-[2rem] p-4 sm:p-6 overflow-hidden">
-                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6 px-2">
-                    <div className="relative w-full sm:max-w-xs">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-                        <input 
-                            type="text" 
-                            placeholder="Filter by key..."
-                            className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all placeholder:text-gray-600"
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-                    <div className="text-xs font-bold text-gray-500 uppercase tracking-widest bg-white/5 px-4 py-2 rounded-lg border border-white/5">
-                        {filteredEnvs.length} Variables Found
-                    </div>
-                </div>
+            {/* Tab Switcher */}
+            <div className="flex gap-2 mb-6 bg-white/5 p-1.5 rounded-2xl w-fit border border-white/5 backdrop-blur-sm">
+                {[
+                    { id: 'variables', icon: Database, label: 'Variables' },
+                    { id: 'activity', icon: History, label: 'Activity History' },
+                    { id: 'connect', icon: Terminal, label: 'Connect CLI' }
+                ].map(tab => (
+                    <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id as Tab)}
+                        className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                            activeTab === tab.id 
+                            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' 
+                            : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'
+                        }`}
+                    >
+                        <tab.icon size={16} />
+                        {tab.label}
+                    </button>
+                ))}
+            </div>
 
+            {/* Content Area */}
+            <div className="glass rounded-[2rem] p-4 sm:p-8 overflow-hidden min-h-[400px]">
                 {loading ? (
                     <div className="flex flex-col items-center justify-center py-24 gap-4">
                         <Loader2 className="text-indigo-500 animate-spin" size={40} />
-                        <p className="text-gray-500 font-medium">Decrypting your vault...</p>
+                        <p className="text-gray-500 font-medium tracking-tight">Accessing Secure Vault...</p>
                     </div>
                 ) : error ? (
                     <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
-                        <div className="p-4 rounded-2xl bg-red-500/10 text-red-400">
+                        <div className="p-4 rounded-2xl bg-red-500/10 text-red-400 shadow-inner">
                             <AlertCircle size={40} />
                         </div>
                         <div>
-                            <h3 className="text-white font-bold text-lg">Decryption Failed</h3>
+                            <h3 className="text-white font-bold text-lg">Vault Connection Error</h3>
                             <p className="text-gray-500 mt-1 max-w-sm">{error}</p>
-                            <p className="text-xs text-gray-600 mt-4 italic">Tip: This usually happens if the encryption key was changed or is invalid.</p>
                         </div>
                         <button 
-                            onClick={() => fetchEnvs()}
-                            className="mt-4 px-6 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-xl text-sm font-bold transition-all"
+                            onClick={fetchData}
+                            className="mt-4 px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-indigo-600/20"
                         >
-                            Retry Connection
+                            Retry Handshake
                         </button>
                     </div>
-                ) : filteredEnvs.length > 0 ? (
-                    <div className="flex flex-col gap-3">
-                        {filteredEnvs.map(e => (
-                            <EnvItem 
-                                key={e.id} 
-                                id={e.id}
-                                keyName={e.key} 
-                                value={e.value} 
-                                error={e.error}
-                                onDelete={handleDelete}
-                                onUpdate={handleUpdate}
-                            />
-                        ))}
-                    </div>
-                ) : (
-                    <div className="text-center py-32 flex flex-col items-center gap-4">
-                        <div className="p-4 rounded-2xl bg-indigo-500/5 text-indigo-400/50">
-                            <AlertCircle size={40} />
+                ) : activeTab === 'variables' ? (
+                    <>
+                        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8 px-2">
+                            <div className="relative w-full sm:max-w-xs">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+                                <input 
+                                    type="text" 
+                                    placeholder="Search encrypted keys..."
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all placeholder:text-gray-600 font-medium"
+                                    value={searchTerm}
+                                    onChange={e => setSearchTerm(e.target.value)}
+                                />
+                            </div>
+                            <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] bg-white/5 px-4 py-2 rounded-lg border border-white/5">
+                                {filteredEnvs.length} Records found
+                            </div>
                         </div>
-                        <p className="text-gray-500 font-medium max-w-xs mx-auto">
-                            {searchTerm ? `No variables matching "${searchTerm}"` : "This vault is empty. Start adding secure variables."}
-                        </p>
-                    </div>
+
+                        {filteredEnvs.length > 0 ? (
+                            <div className="flex flex-col gap-3">
+                                {filteredEnvs.map(e => (
+                                    <EnvItem 
+                                        key={e.id} 
+                                        id={e.id}
+                                        keyName={e.key} 
+                                        value={e.value} 
+                                        error={e.error}
+                                        onDelete={handleDelete}
+                                        onUpdate={handleUpdate}
+                                    />
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-32 flex flex-col items-center gap-4">
+                                <div className="p-4 rounded-2xl bg-indigo-500/5 text-indigo-400/50">
+                                    <AlertCircle size={40} />
+                                </div>
+                                <p className="text-gray-500 font-medium max-w-xs mx-auto">
+                                    {searchTerm ? `No variables matching "${searchTerm}"` : "This vault is empty. Start adding secure variables."}
+                                </p>
+                            </div>
+                        )}
+                    </>
+                ) : activeTab === 'activity' ? (
+                    <AuditTimeline projectId={projectId} />
+                ) : (
+                    <ConnectPanel projectId={projectId} />
                 )}
             </div>
 
             {/* Single Add Modal */}
             <Modal isOpen={singleOpen} onClose={() => setSingleOpen(false)}>
-                <div className="mb-8 text-center">
-                    <h2 className="text-2xl font-black text-white">Add Variable</h2>
-                    <p className="text-gray-400 text-sm mt-1">Key-value pair will be encrypted before storage.</p>
+                <div className="mb-8 text-center px-4">
+                    <h2 className="text-3xl font-black text-white tracking-tight">New Secret</h2>
+                    <p className="text-gray-500 text-sm mt-2 font-medium">Your data will be encrypted before it leaves this client.</p>
                 </div>
                 <form onSubmit={handleAddSingle} className="space-y-6">
-                    <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1">Key Name</label>
+                    <div className="space-y-2">
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Key Name</label>
                         <input 
                             type="text" 
                             required
@@ -275,8 +353,8 @@ export default function ProjectDetailPage() {
                             onChange={e => setNewEnv(prev => ({ ...prev, key: e.target.value.toUpperCase() }))}
                         />
                     </div>
-                    <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1">Value</label>
+                    <div className="space-y-2">
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Secret Value</label>
                         <input 
                             type="password" 
                             required
@@ -292,16 +370,16 @@ export default function ProjectDetailPage() {
                         className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white py-4 rounded-2xl font-bold text-lg shadow-xl shadow-indigo-600/20 active:scale-95 transition-all flex items-center justify-center gap-2"
                     >
                         {submitting ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
-                        {submitting ? 'Encrypting...' : 'Save Variable'}
+                        {submitting ? 'Performing Handshake...' : 'Seal & Store'}
                     </button>
                 </form>
             </Modal>
 
             {/* Bulk Add Modal */}
             <Modal isOpen={bulkOpen} onClose={() => setBulkOpen(false)}>
-                <div className="mb-8 text-center">
-                    <h2 className="text-2xl font-black text-white">Bulk .env Import</h2>
-                    <p className="text-gray-400 text-sm mt-1">Paste your .env file content. Comments and empty lines are skipped.</p>
+                <div className="mb-8 text-center px-4">
+                    <h2 className="text-3xl font-black text-white tracking-tight">Bulk .env Import</h2>
+                    <p className="text-gray-500 text-sm mt-2 font-medium">Paste your raw .env file content below. We&apos;ll parse and encrypt each key individually.</p>
                 </div>
                 <form onSubmit={handleAddBulk} className="space-y-6">
                     <div className="relative">
@@ -309,7 +387,7 @@ export default function ProjectDetailPage() {
                             rows={12}
                             required
                             placeholder="DB_URI=postgres://...&#10;API_KEY=sk_test_..."
-                            className="w-full glass bg-white/5 border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all font-mono text-xs placeholder:text-gray-700 leading-relaxed resize-none"
+                            className="w-full glass bg-white/5 border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all font-mono text-xs placeholder:text-gray-700 leading-relaxed resize-none scrollbar-hide"
                             value={envFile}
                             onChange={e => setEnvFile(e.target.value)}
                         />
@@ -320,10 +398,21 @@ export default function ProjectDetailPage() {
                         className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white py-4 rounded-2xl font-bold text-lg shadow-xl shadow-indigo-600/20 active:scale-95 transition-all flex items-center justify-center gap-2"
                     >
                         {submitting ? <Loader2 className="animate-spin" size={20} /> : <Rocket size={20} />}
-                        {submitting ? 'Parsing & Encrypting...' : 'Import Everything'}
+                        {submitting ? 'Processing Batch...' : 'Import Batch'}
                     </button>
                 </form>
             </Modal>
+
+            <ConfirmDialog
+                isOpen={confirmEnvOpen}
+                title="Delete Variable?"
+                message="This will permanently remove this encrypted variable from the vault. This action cannot be undone."
+                confirmLabel="Yes, Delete"
+                cancelLabel="Keep It"
+                variant="danger"
+                onConfirm={confirmDeleteEnv}
+                onCancel={() => { setConfirmEnvOpen(false); setPendingDeleteEnvId(null); }}
+            />
         </div>
     );
 }

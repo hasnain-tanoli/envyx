@@ -13,6 +13,11 @@ export async function getProjects(): Promise<Project[]> {
     return handleResponse(res);
 }
 
+export async function getProject(id: string): Promise<Project> {
+    const res = await fetch(`/api/projects/${id}`, { credentials: 'include' });
+    return handleResponse(res);
+}
+
 export async function getEnvs(projectId: string): Promise<Environment[]> {
     const res = await fetch(`/api/projects/${projectId}/env`, { credentials: 'include' });
     return handleResponse(res);
@@ -46,21 +51,21 @@ export async function deleteEnv(projectId: string, envId: string) {
     return handleResponse(res);
 }
 
-export async function createProject(name: string, description?: string) {
+export async function createProject(name: string, description?: string, environment?: string) {
     const res = await fetch('/api/projects', {
         method: 'POST',
         credentials: 'include',
-        body: JSON.stringify({ name, description }),
+        body: JSON.stringify({ name, description, environment }),
         headers: { 'Content-Type': 'application/json' },
     });
     return handleResponse(res);
 }
 
-export async function updateProject(id: string, name: string, description?: string) {
+export async function updateProject(id: string, name: string, description?: string, environment?: string) {
     const res = await fetch(`/api/projects/${id}`, {
         method: 'PUT',
         credentials: 'include',
-        body: JSON.stringify({ name, description }),
+        body: JSON.stringify({ name, description, environment }),
         headers: { 'Content-Type': 'application/json' },
     });
     return handleResponse(res);

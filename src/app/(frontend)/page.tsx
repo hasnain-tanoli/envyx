@@ -23,7 +23,7 @@ export default function Page() {
             </div>
 
             {/* Hero Section */}
-            <section className="px-6 pt-24 pb-32 sm:pt-32 sm:pb-40 text-center max-w-5xl mx-auto animate-in">
+            <section className="px-6 pt-24 pb-32 sm:pt-32 sm:pb-40 text-center max-w-5xl mx-auto">
                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border-white/10 text-indigo-400 text-xs font-bold uppercase tracking-widest mb-8 animate-bounce-subtle">
                     <ShieldCheck size={14} />
                     Military Grade Encryption

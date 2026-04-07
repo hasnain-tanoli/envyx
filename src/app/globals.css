@@ -32,12 +32,21 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
-  background-image: radial-gradient(circle at 50% 0%, #1a1a1a 0%, transparent 50%),
-                    radial-gradient(circle at 0% 100%, #111 0%, transparent 50%);
-  background-attachment: fixed;
   min-height: 100vh;
 }
 
+/* HIGH PERFORMANCE BACKGROUND LAYER */
+.fixed-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image: radial-gradient(circle at 50% 0%, #1a1a1a 0%, transparent 50%),
+    radial-gradient(circle at 0% 100%, #111 0%, transparent 50%);
+  pointer-events: none;
+  background-color: var(--background);
+}
+
+/* PREMIUM GLASS (Use for Modals / Headers) */
 .glass {
   background: var(--glass);
   backdrop-filter: blur(12px);
@@ -45,11 +54,8 @@ body {
   border: 1px solid var(--glass-border);
 }
 
-.animate-in {
-  animation: fade-in 0.5s ease-out;
-}
-
-@keyframes fade-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+/* HIGH-PERFORMANCE GLASS (Use for List Items / Cards) */
+.glass-item {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
 }

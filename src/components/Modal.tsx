@@ -12,7 +12,7 @@ export default function Modal({ children, isOpen, onClose }: ModalProps) {
     if (!isOpen) return null;
     
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
             {/* Overlay */}
             <div 
                 className="absolute inset-0 bg-black/60 backdrop-blur-sm" 

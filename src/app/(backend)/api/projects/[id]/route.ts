@@ -26,10 +26,10 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const session = await auth.api.getSession({ headers: req.headers });
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const { id } = await params;
-    const { name, description } = await req.json();
 
     try {
-        const [updatedProject] = await db.update(projects).set({ name, description, updated_at: new Date() })
+        const { name, description, environment } = await req.json();
+        const [updatedProject] = await db.update(projects).set({ name, description, environment, updated_at: new Date() })
             .where(and(eq(projects.id, id), eq(projects.user_id, session.user.id), isNull(projects.deleted_at))).returning();
         if (!updatedProject) return NextResponse.json({ error: 'Not found' }, { status: 404 });
         return NextResponse.json(updatedProject);

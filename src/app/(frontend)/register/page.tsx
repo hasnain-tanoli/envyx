@@ -47,7 +47,7 @@ export default function Page() {
                 <div className="absolute left-0 bottom-0 h-[400px] w-[400px] rounded-full bg-purple-600/5 blur-[100px]" />
             </div>
 
-            <div className="w-full max-w-md animate-in">
+            <div className="w-full max-w-md">
                 {/* Branding */}
                 <div className="text-center mb-10">
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-600/10 text-indigo-500 mb-6 border border-indigo-500/20 shadow-inner shadow-white/5">

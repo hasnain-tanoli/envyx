@@ -24,11 +24,12 @@ export async function POST(req: Request) {
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     try {
-        const { name, description } = await req.json();
+        const { name, description, environment } = await req.json();
         const [newProject] = await db.insert(projects).values({
             user_id: session.user.id,
             name,
             description,
+            environment: environment || 'development',
         }).returning();
         return NextResponse.json(newProject);
     } catch (e: unknown) {

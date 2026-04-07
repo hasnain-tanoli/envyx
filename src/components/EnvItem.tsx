@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { Eye, EyeOff, Copy, Check, Trash2, Edit2, AlertTriangle, Loader2 } from 'lucide-react';
 
 interface EnvItemProps {
@@ -12,7 +12,7 @@ interface EnvItemProps {
     onUpdate?: (id: string, key: string, value: string) => void;
 }
 
-export default function EnvItem({ id, keyName, value, error, onDelete, onUpdate }: EnvItemProps) {
+function EnvItem({ id, keyName, value, error, onDelete, onUpdate }: EnvItemProps) {
     const [revealed, setRevealed] = useState(false);
     const [copied, setCopied] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
@@ -41,7 +41,7 @@ export default function EnvItem({ id, keyName, value, error, onDelete, onUpdate 
 
     if (isEditing) {
         return (
-            <div className="group glass bg-indigo-500/5 border-indigo-500/20 p-4 rounded-2xl flex flex-col gap-4 animate-in">
+            <div className="group glass-item bg-indigo-500/5 border-indigo-500/20 p-4 rounded-2xl flex flex-col gap-4">
                 <div className="flex flex-col sm:flex-row gap-4">
                     <div className="flex-1">
                         <label className="block text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1 shadow-sm">Key</label>
@@ -92,7 +92,7 @@ export default function EnvItem({ id, keyName, value, error, onDelete, onUpdate 
     }
 
     return (
-        <div className="group glass bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/20 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all animate-in">
+        <div className="group glass-item bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/20 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all">
             <div className="flex flex-col gap-1 min-w-0 pr-4">
                 <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest">{keyName}</span>
                 <div className="flex items-center gap-2 font-mono text-sm overflow-hidden">
@@ -141,3 +141,5 @@ export default function EnvItem({ id, keyName, value, error, onDelete, onUpdate 
         </div>
     );
 }
+
+export default memo(EnvItem);

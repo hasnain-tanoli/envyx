@@ -2,17 +2,22 @@
 import { useEffect, useState, useCallback } from 'react';
 import ProjectCard from '@/components/ProjectCard';
 import Modal from '@/components/Modal';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { getProjects, createProject, updateProject, deleteProject } from '@/lib/api';
 import { Project } from '@/types';
-import { Plus, Rocket, LayoutGrid, Loader2 } from 'lucide-react';
+import { Plus, Rocket, LayoutGrid, Loader2, ShieldCheck, Globe, Code } from 'lucide-react';
+import { useToast } from '@/components/Toast';
 
 export default function Page() {
+    const { showToast } = useToast();
     const [projects, setProjects] = useState<Project[]>([]);
     const [loading, setLoading] = useState(true);
     const [modalOpen, setModalOpen] = useState(false);
-    const [newProject, setNewProject] = useState({ name: '', description: '' });
+    const [newProject, setNewProject] = useState({ name: '', description: '', environment: 'development' });
     const [editingProject, setEditingProject] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
     const fetchProjects = useCallback(async () => {
         setLoading(true);
@@ -21,10 +26,11 @@ export default function Page() {
             setProjects(data || []);
         } catch (error) {
             console.error('Failed to fetch projects:', error);
+            showToast('Failed to sync projects', 'error');
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [showToast]);
 
     useEffect(() => {
         fetchProjects();
@@ -37,43 +43,56 @@ export default function Page() {
         setSubmitting(true);
         try {
             if (editingProject) {
-                await updateProject(editingProject, newProject.name, newProject.description);
+                await updateProject(editingProject, newProject.name, newProject.description, newProject.environment);
+                showToast('Project updated', 'success');
             } else {
-                await createProject(newProject.name, newProject.description);
+                await createProject(newProject.name, newProject.description, newProject.environment);
+                showToast('New project created', 'success');
             }
             setModalOpen(false);
             resetForm();
             fetchProjects();
         } catch (error) {
             console.error('Failed to save project:', error);
+            showToast('Save failed', 'error');
         } finally {
             setSubmitting(false);
         }
     }
 
-    async function handleDeleteProject(id: string) {
-        if (!confirm('Are you sure? This will delete the project and all its variables.')) return;
+    function handleDeleteProject(id: string) {
+        setPendingDeleteId(id);
+        setConfirmOpen(true);
+    }
+
+    async function confirmDeleteProject() {
+        if (!pendingDeleteId) return;
+        setConfirmOpen(false);
         try {
-            await deleteProject(id);
+            await deleteProject(pendingDeleteId);
+            showToast('Project deleted', 'success');
             fetchProjects();
         } catch (error) {
             console.error('Failed to delete project:', error);
+            showToast('Delete failed', 'error');
+        } finally {
+            setPendingDeleteId(null);
         }
     }
 
-    function handleEditMode(id: string, name: string, description: string) {
+    function handleEditMode(id: string, name: string, description: string, environment: string) {
         setEditingProject(id);
-        setNewProject({ name, description });
+        setNewProject({ name, description, environment: environment || 'development' });
         setModalOpen(true);
     }
 
     function resetForm() {
         setEditingProject(null);
-        setNewProject({ name: '', description: '' });
+        setNewProject({ name: '', description: '', environment: 'development' });
     }
 
     return (
-        <div className="max-w-7xl mx-auto px-6 py-12 animate-in">
+        <div className="max-w-7xl mx-auto px-6 py-12">
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
                 <div>
                     <h1 className="text-4xl font-black tracking-tight text-white mb-2">Projects Dashboard</h1>
@@ -129,17 +148,17 @@ export default function Page() {
             )}
 
             <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)}>
-                <div className="mb-8 text-center">
+                <div className="mb-8 text-center px-4">
                     <div className="w-16 h-16 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-500 mx-auto mb-4">
                         <LayoutGrid size={32} />
                     </div>
-                    <h2 className="text-2xl font-black text-white">{editingProject ? 'Edit Project' : 'New Project'}</h2>
-                    <p className="text-gray-400 text-sm mt-1">{editingProject ? 'Update your secure vault settings.' : 'Set up a secure vault for your envs.'}</p>
+                    <h2 className="text-3xl font-black text-white tracking-tight">{editingProject ? 'Edit Project' : 'New Project'}</h2>
+                    <p className="text-gray-500 text-sm mt-2 font-medium">{editingProject ? 'Update your secure vault settings.' : 'Set up a secure vault for your envs.'}</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1">Project Name</label>
+                    <div className="space-y-2">
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Project Name</label>
                         <input 
                             type="text" 
                             required
@@ -149,9 +168,34 @@ export default function Page() {
                             onChange={e => setNewProject(prev => ({ ...prev, name: e.target.value }))}
                         />
                     </div>
+
+                    <div className="space-y-3">
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Deployment Tier</label>
+                        <div className="grid grid-cols-3 gap-3">
+                            {[
+                                { id: 'production', label: 'Prod', icon: ShieldCheck, color: 'text-red-400', active: 'bg-red-500/10 border-red-500/50 text-red-400' },
+                                { id: 'staging', label: 'Stage', icon: Globe, color: 'text-amber-400', active: 'bg-amber-500/10 border-amber-500/50 text-amber-400' },
+                                { id: 'development', label: 'Dev', icon: Code,  color: 'text-indigo-400', active: 'bg-indigo-500/10 border-indigo-500/50 text-indigo-400' }
+                            ].map(tier => (
+                                <button
+                                    key={tier.id}
+                                    type="button"
+                                    onClick={() => setNewProject(prev => ({ ...prev, environment: tier.id }))}
+                                    className={`flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border transition-all ${
+                                        newProject.environment === tier.id 
+                                        ? tier.active 
+                                        : 'bg-white/5 border-white/5 text-gray-500 hover:bg-white/10'
+                                    }`}
+                                >
+                                    <tier.icon size={20} className={newProject.environment === tier.id ? tier.color : 'text-gray-600'} />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">{tier.label}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                     
-                    <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1">Description (Optional)</label>
+                    <div className="space-y-2">
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Description (Optional)</label>
                         <textarea 
                             rows={3}
                             placeholder="What is this project about?"
@@ -170,6 +214,17 @@ export default function Page() {
                     </button>
                 </form>
             </Modal>
+
+            <ConfirmDialog
+                isOpen={confirmOpen}
+                title="Delete Project?"
+                message="This will permanently delete the project and all its encrypted variables. This action cannot be undone."
+                confirmLabel="Yes, Delete"
+                cancelLabel="Keep It"
+                variant="danger"
+                onConfirm={confirmDeleteProject}
+                onCancel={() => { setConfirmOpen(false); setPendingDeleteId(null); }}
+            />
         </div>
     );
 }
