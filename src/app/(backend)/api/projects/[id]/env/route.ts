@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAuthContext } from '@/lib/api-auth';
+import { getAuthContext, getProjectAccess } from '@/lib/api-auth';
 import { db } from '@/lib/db';
 import { projects, env, env_audit_log } from '@/db/schema';
 import { and, eq, isNull, sql } from 'drizzle-orm';
@@ -11,12 +11,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     if (!context) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const { id } = await params;
 
-    const [project] = await db.select().from(projects).where(and(
-        eq(projects.id, id),
-        eq(projects.user_id, context.user.id),
-        isNull(projects.deleted_at)
-    ));
-    if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+    const access = await getProjectAccess(id, context);
+    if (!access) return NextResponse.json({ error: 'Project not found or no access' }, { status: 404 });
 
     // If using token auth, verify project scope
     if (context.token && context.token.project_id !== id) {
@@ -29,11 +25,13 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
             isNull(env.deleted_at)
         ));
 
+        const isViewer = access.role === 'viewer';
+
         const decryptedEnvs = envs.map(e => {
             try {
                 return {
                     ...e,
-                    value: decryptValue(e.value),
+                    value: isViewer ? '••••••••' : decryptValue(e.value),
                 };
             } catch (error: unknown) {
                 console.error(`Failed to decrypt env ${e.id}:`, error);
@@ -55,12 +53,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const context = await getAuthContext(req);
     if (!context) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    // Tokens are currently for Read-Only access only, preventing write operations via token
-    if (context.token) {
-        return NextResponse.json({ error: 'Only session auth is allowed for write operations. Tokens are read-only.' }, { status: 403 });
-    }
-
     const { id } = await params;
+    const access = await getProjectAccess(id, context);
+    if (!access) return NextResponse.json({ error: 'Project not found or no access' }, { status: 404 });
+
+    // Check permissions
+    if (context.token) {
+        return NextResponse.json({ error: 'Tokens are read-only.' }, { status: 403 });
+    }
+    if (access.role === 'viewer') {
+        return NextResponse.json({ error: 'Viewers cannot create environment variables.' }, { status: 403 });
+    }
 
     // Validate request body
     const body = await req.json().catch(() => null);
@@ -81,13 +84,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             error: `Environment variable "${key}" already exists in this project.`
         }, { status: 409 });
     }
-
-    const [project] = await db.select().from(projects).where(and(
-        eq(projects.id, id),
-        eq(projects.user_id, context.user.id),
-        isNull(projects.deleted_at)
-    ));
-    if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 404 });
 
     try {
         const encryptedValue = encryptValue(value);

@@ -10,9 +10,10 @@ interface EnvItemProps {
     error?: boolean;
     onDelete?: (id: string) => void;
     onUpdate?: (id: string, key: string, value: string) => void;
+    disabled?: boolean;
 }
 
-function EnvItem({ id, keyName, value, error, onDelete, onUpdate }: EnvItemProps) {
+function EnvItem({ id, keyName, value, error, onDelete, onUpdate, disabled }: EnvItemProps) {
     const [revealed, setRevealed] = useState(false);
     const [copied, setCopied] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
@@ -120,23 +121,27 @@ function EnvItem({ id, keyName, value, error, onDelete, onUpdate }: EnvItemProps
                     {copied ? <Check size={18} /> : <Copy size={18} />}
                 </button>
 
-                <div className="w-[1px] h-6 bg-white/10 mx-1" />
+                {!disabled && (
+                    <>
+                        <div className="w-[1px] h-6 bg-white/10 mx-1" />
 
-                <button 
-                    onClick={() => setIsEditing(true)}
-                    className="p-2 text-gray-400 hover:text-indigo-400 hover:bg-indigo-400/10 rounded-xl transition-all"
-                    title="Edit Variable"
-                >
-                    <Edit2 size={18} />
-                </button>
+                        <button 
+                            onClick={() => setIsEditing(true)}
+                            className="p-2 text-gray-400 hover:text-indigo-400 hover:bg-indigo-400/10 rounded-xl transition-all"
+                            title="Edit Variable"
+                        >
+                            <Edit2 size={18} />
+                        </button>
 
-                <button 
-                    onClick={() => onDelete?.(id)}
-                    className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded-xl transition-all"
-                    title="Delete Variable"
-                >
-                    <Trash2 size={18} />
-                </button>
+                        <button 
+                            onClick={() => onDelete?.(id)}
+                            className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded-xl transition-all"
+                            title="Delete Variable"
+                        >
+                            <Trash2 size={18} />
+                        </button>
+                    </>
+                )}
             </div>
         </div>
     );

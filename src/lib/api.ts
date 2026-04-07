@@ -92,11 +92,11 @@ export async function createProject(name: string, description?: string, environm
     return handleResponse(res);
 }
 
-export async function updateProject(id: string, name: string, description?: string, environment?: string) {
+export async function updateProject(id: string, name: string, description?: string, environment?: string, teamId?: string) {
     const res = await fetch(`/api/projects/${id}`, {
         method: 'PUT',
         credentials: 'include',
-        body: JSON.stringify({ name, description, environment }),
+        body: JSON.stringify({ name, description, environment, team_id: teamId }),
         headers: { 'Content-Type': 'application/json' },
     });
     return handleResponse(res);
@@ -105,6 +105,63 @@ export async function updateProject(id: string, name: string, description?: stri
 export async function deleteProject(id: string) {
     const res = await fetch(`/api/projects/${id}`, {
         method: 'DELETE',
+        credentials: 'include',
+    });
+    return handleResponse(res);
+}
+
+// --- Team APIs ---
+
+export async function getTeams() {
+    const res = await fetch('/api/teams', { credentials: 'include' });
+    return handleResponse(res);
+}
+
+export async function createTeam(name: string, slug: string) {
+    const res = await fetch('/api/teams', {
+        method: 'POST',
+        credentials: 'include',
+        body: JSON.stringify({ name, slug }),
+        headers: { 'Content-Type': 'application/json' },
+    });
+    return handleResponse(res);
+}
+
+export async function getTeamMembers(teamId: string) {
+    const res = await fetch(`/api/teams/${teamId}/members`, { credentials: 'include' });
+    return handleResponse(res);
+}
+
+export async function inviteMember(teamId: string, email: string, role: string = 'member') {
+    const res = await fetch(`/api/teams/${teamId}/members`, {
+        method: 'POST',
+        credentials: 'include',
+        body: JSON.stringify({ email, role }),
+        headers: { 'Content-Type': 'application/json' },
+    });
+    return handleResponse(res);
+}
+
+export async function updateMemberRole(teamId: string, memberId: string, role: string) {
+    const res = await fetch(`/api/teams/${teamId}/members/${memberId}`, {
+        method: 'PATCH',
+        credentials: 'include',
+        body: JSON.stringify({ role }),
+        headers: { 'Content-Type': 'application/json' },
+    });
+    return handleResponse(res);
+}
+
+export async function removeMember(teamId: string, memberId: string) {
+    const res = await fetch(`/api/teams/${teamId}/members/${memberId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+    });
+    return handleResponse(res);
+}
+
+export async function getTeamProjects(teamId: string) {
+    const res = await fetch(`/api/teams/${teamId}/projects`, {
         credentials: 'include',
     });
     return handleResponse(res);

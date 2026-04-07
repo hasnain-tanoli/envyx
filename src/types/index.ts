@@ -6,7 +6,9 @@ export type User = InferSelectModel<typeof user>;
 export type NewUser = InferInsertModel<typeof user>;
 
 // Project types inferred from Drizzle ORM schemas
-export type Project = InferSelectModel<typeof projects>;
+export type Project = InferSelectModel<typeof projects> & {
+    role?: 'owner' | 'admin' | 'member' | 'viewer';
+};
 export type NewProject = InferInsertModel<typeof projects>;
 
 // Environment types inferred from Drizzle ORM schemas

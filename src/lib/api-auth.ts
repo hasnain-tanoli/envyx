@@ -3,6 +3,8 @@ import { db } from '@/lib/db';
 import { api_tokens } from '@/db/schema';
 import { and, eq, sql } from 'drizzle-orm';
 import { hashToken } from './tokens';
+import { projects, teamMembers } from '@/db/schema';
+import { isNull, or } from 'drizzle-orm';
 
 export interface AuthContext {
     user: {
@@ -13,6 +15,46 @@ export interface AuthContext {
         project_id: string;
         scopes: string[];
     };
+}
+
+export type ProjectAccess = {
+    project: any; // Type it better if possible, using 'any' for now to avoid complexity with Drizzle types in this thought
+    role: 'owner' | 'admin' | 'member' | 'viewer';
+};
+
+/**
+ * Returns project and user's role for that project.
+ * Checks personal ownership OR team membership.
+ */
+export async function getProjectAccess(projectId: string, context: AuthContext): Promise<ProjectAccess | null> {
+    const userId = context.user.id;
+
+    // 1. Fetch project and possible team membership in one query or sequential
+    const [project] = await db.select().from(projects).where(and(
+        eq(projects.id, projectId),
+        isNull(projects.deleted_at)
+    ));
+
+    if (!project) return null;
+
+    // 2. Check personal ownership
+    if (project.user_id === userId) {
+        return { project, role: 'owner' };
+    }
+
+    // 3. Check team membership
+    if (project.team_id) {
+        const [membership] = await db.select().from(teamMembers).where(and(
+            eq(teamMembers.team_id, project.team_id),
+            eq(teamMembers.user_id, userId)
+        ));
+
+        if (membership) {
+            return { project, role: membership.role as any };
+        }
+    }
+
+    return null;
 }
 
 /**

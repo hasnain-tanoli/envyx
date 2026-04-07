@@ -5,6 +5,8 @@ export { projects, projectCreateSchema, projectUpdateSchema } from './projects';
 export { env, envCreateSchema, envUpdateSchema, envBulkSchema } from './env';
 export { env_audit_log } from './env_audit_logs';
 export { api_tokens, tokenCreateSchema } from './api_tokens';
+export { teams, teamCreateSchema } from './teams';
+export { teamMembers, teamMemberSchema } from './team_members';
 
 export function validationErrorResponse(error: z.ZodError) {
     return {

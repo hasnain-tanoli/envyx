@@ -10,9 +10,10 @@ import ConnectPanel from '@/components/ConnectPanel';
 import TrashItem from '@/components/TrashItem';
 import { TokenManager } from '@/components/TokenManager';
 import { ExportPanel } from '@/components/ExportPanel';
-import { getEnvs, addEnv, deleteEnv, updateEnv, getProject, bulkImportEnvs, getTrashEnvs, restoreEnv, hardDeleteEnv } from '@/lib/api';
+import { getEnvs, addEnv, deleteEnv, updateEnv, getProject, bulkImportEnvs, getTrashEnvs, restoreEnv, hardDeleteEnv, updateProject, deleteProject } from '@/lib/api';
 import { Environment, Project } from '@/types';
 import { useToast } from '@/components/Toast';
+import { useRouter } from 'next/navigation';
 import {
     Plus,
     ArrowLeft,
@@ -28,14 +29,18 @@ import {
     History,
     Terminal,
     Database,
-    Trash2
+    Trash2,
+    Settings as SettingsIcon,
+    Users
 } from 'lucide-react';
 import Link from 'next/link';
+import { getTeams } from '@/lib/api';
 
-type Tab = 'variables' | 'activity' | 'connect' | 'trash' | 'access';
+type Tab = 'variables' | 'activity' | 'connect' | 'access' | 'trash' | 'settings';
 
 export default function ProjectDetailPage() {
     const params = useParams();
+    const router = useRouter();
     const projectId = params.id as string;
     const { showToast } = useToast();
     const [project, setProject] = useState<Project | null>(null);
@@ -56,20 +61,30 @@ export default function ProjectDetailPage() {
     const [pendingDeleteEnvId, setPendingDeleteEnvId] = useState<string | null>(null);
     const [confirmHardDeleteOpen, setConfirmHardDeleteOpen] = useState(false);
     const [pendingHardDeleteId, setPendingHardDeleteId] = useState<string | null>(null);
+    const [availableTeams, setAvailableTeams] = useState<any[]>([]);
+    const [projectSettings, setProjectSettings] = useState({ name: '', description: '', environment: '', team_id: '' as string | null });
 
     const fetchData = useCallback(async () => {
         if (!projectId) return;
         setLoading(true);
         setError(null);
         try {
-            const [projectData, envsData, trashData] = await Promise.all([
+            const [projectData, envsData, trashData, teamsData] = await Promise.all([
                 getProject(projectId),
                 getEnvs(projectId),
-                getTrashEnvs(projectId)
+                getTrashEnvs(projectId),
+                getTeams().catch(() => [])
             ]);
             setProject(projectData);
+            setProjectSettings({
+                name: projectData.name,
+                description: projectData.description || '',
+                environment: projectData.environment || 'development',
+                team_id: projectData.team_id
+            });
             setEnvs(Array.isArray(envsData) ? envsData : []);
             setTrashEnvs(Array.isArray(trashData) ? trashData : []);
+            setAvailableTeams(teamsData);
         } catch (error: unknown) {
             console.error('Failed to fetch project data:', error);
             setError(error instanceof Error ? error.message : 'Unknown error');
@@ -212,6 +227,42 @@ export default function ProjectDetailPage() {
         development: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20 shadow-indigo-500/10'
     };
 
+    const isAdmin = project?.role === 'owner' || project?.role === 'admin';
+    const isOwner = project?.role === 'owner';
+    const isViewer = project?.role === 'viewer';
+
+    const handleUpdateSettings = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSubmitting(true);
+        try {
+            await updateProject(
+                projectId,
+                projectSettings.name,
+                projectSettings.description,
+                projectSettings.environment,
+                projectSettings.team_id || undefined
+            );
+            showToast('Settings saved', 'success');
+            fetchData();
+        } catch (error) {
+            showToast('Update failed', 'error');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleDeleteProject = async () => {
+        if (!isOwner) return;
+        try {
+            await deleteProject(projectId);
+            showToast('Project destroyed', 'success');
+            router.push('/projects');
+        } catch (err) {
+            showToast('Failed to delete project', 'error');
+        }
+    };
+
+
     return (
         <div className="max-w-6xl mx-auto px-6 py-12">
             {/* Header Area */}
@@ -233,13 +284,18 @@ export default function ProjectDetailPage() {
                                     {project.environment}
                                 </span>
                             )}
+                            {project?.role && (
+                                <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-400 shadow-sm`}>
+                                    {project.role}
+                                </span>
+                            )}
                         </div>
                         <h1 className="text-4xl font-black text-white tracking-tight">{project?.name || 'Loading Project...'}</h1>
                         <p className="text-gray-500 font-medium mt-1">{project?.description || 'Manage your encrypted secrets and access history.'}</p>
                     </div>
 
                     <div className="flex gap-4">
-                        {hasMounted && activeTab === 'variables' && (
+                        {hasMounted && activeTab === 'variables' && !isViewer && (
                             <>
                                 <button
                                     onClick={handleBulkCopy}
@@ -265,6 +321,12 @@ export default function ProjectDetailPage() {
                                 </button>
                             </>
                         )}
+                        {isViewer && activeTab === 'variables' && (
+                            <div className="flex items-center gap-2 text-amber-400 bg-amber-400/10 px-4 py-2 rounded-xl border border-amber-400/20 text-xs font-bold uppercase tracking-widest">
+                                <AlertCircle size={14} />
+                                View Only Mode
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -276,7 +338,8 @@ export default function ProjectDetailPage() {
                     { id: 'activity', icon: History, label: 'Activity' },
                     { id: 'connect', icon: Terminal, label: 'Connect CLI' },
                     { id: 'access', icon: Shield, label: 'Access & Export' },
-                    { id: 'trash', icon: Trash2, label: 'Trash' }
+                    { id: 'trash', icon: Trash2, label: 'Trash' },
+                    ...(isAdmin ? [{ id: 'settings', icon: SettingsIcon, label: 'Settings' }] : [])
                 ].map(tab => (
                     <button
                         key={tab.id}
@@ -344,6 +407,7 @@ export default function ProjectDetailPage() {
                                         error={e.error}
                                         onDelete={handleDelete}
                                         onUpdate={handleUpdate}
+                                        disabled={isViewer}
                                     />
                                 ))}
                             </div>
@@ -365,7 +429,84 @@ export default function ProjectDetailPage() {
                 ) : activeTab === 'access' ? (
                     <div className="space-y-8">
                         <ExportPanel projectId={projectId} />
-                        <TokenManager projectId={projectId} />
+                        {!isViewer && <TokenManager projectId={projectId} />}
+                    </div>
+                ) : activeTab === 'settings' ? (
+                    <div className="max-w-2xl">
+                        <div className="mb-10">
+                            <h3 className="text-2xl font-bold text-white mb-2">Project Settings</h3>
+                            <p className="text-gray-400">Manage environment type and team ownership.</p>
+                        </div>
+
+                        <form onSubmit={handleUpdateSettings} className="space-y-8">
+                            <div className="space-y-2">
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Project Name</label>
+                                <input
+                                    type="text"
+                                    className="w-full glass bg-[#0f1117] border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all font-medium"
+                                    value={projectSettings.name}
+                                    onChange={e => setProjectSettings(prev => ({ ...prev, name: e.target.value }))}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Environment Target</label>
+                                <select
+                                    className="w-full glass bg-[#0f1117] border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all font-medium appearance-none"
+                                    value={projectSettings.environment}
+                                    onChange={e => setProjectSettings(prev => ({ ...prev, environment: e.target.value }))}
+                                >
+                                    <option value="development">Development</option>
+                                    <option value="staging">Staging</option>
+                                    <option value="production">Production</option>
+                                </select>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Team Ownership</label>
+                                <div className="p-1 glass bg-[#0f1117] border-white/10 rounded-2xl flex items-center">
+                                    <div className="flex-1 px-4 py-3 flex items-center gap-3">
+                                        <Users className="text-indigo-400" size={18} />
+                                        <select
+                                            className="bg-transparent text-white focus:outline-none w-full appearance-none cursor-pointer"
+                                            value={projectSettings.team_id || ''}
+                                            onChange={e => setProjectSettings(prev => ({ ...prev, team_id: e.target.value || null }))}
+                                        >
+                                            <option value="">Personal Project</option>
+                                            {availableTeams.map(t => (
+                                                <option key={t.id} value={t.id}>{t.name} (@{t.slug})</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                                <p className="text-[10px] text-gray-500 mt-2 px-1 italic">Moving to a team will share these secrets with all team members according to their roles.</p>
+                            </div>
+
+                            <div className="pt-4 flex gap-4">
+                                <button
+                                    type="submit"
+                                    disabled={submitting}
+                                    className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl font-bold transition-all shadow-lg shadow-indigo-600/20 active:scale-95 flex items-center gap-2"
+                                >
+                                    {submitting ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                                    Save Configuration
+                                </button>
+
+                                {isOwner && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            if (confirm('Are you SURE you want to delete this project? This cannot be undone.')) {
+                                                handleDeleteProject();
+                                            }
+                                        }}
+                                        className="px-8 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl font-bold transition-all"
+                                    >
+                                        Destroy Vault
+                                    </button>
+                                )}
+                            </div>
+                        </form>
                     </div>
                 ) : (
                     <>
@@ -383,6 +524,7 @@ export default function ProjectDetailPage() {
                                         deletedAt={e.deleted_at}
                                         onRestore={handleRestore}
                                         onHardDelete={handleConfirmHardDelete}
+                                        disabled={isViewer}
                                     />
                                 ))}
                             </div>
@@ -395,7 +537,8 @@ export default function ProjectDetailPage() {
                             </div>
                         )}
                     </>
-                )}
+                )
+                }
             </div>
 
             {/* Single Add Modal */}

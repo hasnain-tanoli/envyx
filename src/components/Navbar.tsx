@@ -40,6 +40,14 @@ export default function Navbar() {
                             Projects
                         </Link>
 
+                        <Link
+                            href="/teams"
+                            className={`flex items-center gap-2 text-sm font-medium transition-colors hover:text-indigo-400 ${path.startsWith('/teams') ? 'text-indigo-500' : 'text-gray-400'}`}
+                        >
+                            <UserIcon size={18} />
+                            Teams
+                        </Link>
+
                         <div className="flex items-center gap-4 pl-6 border-l border-white/10">
                             <div className="flex items-center gap-2 text-sm font-medium text-gray-300">
                                 <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30">

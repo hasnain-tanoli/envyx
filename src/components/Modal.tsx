@@ -6,9 +6,10 @@ interface ModalProps {
     children: ReactNode;
     isOpen: boolean;
     onClose: () => void;
+    title?: string;
 }
 
-export default function Modal({ children, isOpen, onClose }: ModalProps) {
+export default function Modal({ children, isOpen, onClose, title }: ModalProps) {
     if (!isOpen) return null;
     
     return (
@@ -21,14 +22,17 @@ export default function Modal({ children, isOpen, onClose }: ModalProps) {
             
             {/* Modal Content */}
             <div className="relative glass w-full max-w-lg rounded-3xl p-8 shadow-2xl shadow-indigo-500/10 overflow-hidden">
-                <button 
-                    className="absolute top-6 right-6 p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-all" 
-                    onClick={onClose}
-                >
-                    <X size={20} />
-                </button>
+                <div className="flex justify-between items-center mb-6">
+                    {title && <h2 className="text-xl font-bold text-white">{title}</h2>}
+                    <button 
+                        className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-all ml-auto" 
+                        onClick={onClose}
+                    >
+                        <X size={20} />
+                    </button>
+                </div>
                 
-                <div className="mt-2">
+                <div>
                     {children}
                 </div>
             </div>

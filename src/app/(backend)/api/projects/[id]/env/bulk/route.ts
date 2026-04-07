@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAuthContext } from '@/lib/api-auth';
+import { getAuthContext, getProjectAccess } from '@/lib/api-auth';
 import { db } from '@/lib/db';
 import { projects, env, env_audit_log } from '@/db/schema';
 import { and, eq, isNull, sql } from 'drizzle-orm';
@@ -7,18 +7,23 @@ import { encryptValue } from '@/lib/crypto';
 import { envBulkSchema, envCreateSchema, validationErrorResponse } from '@/db/schema';
 
 /** Maximum number of variables allowed in a single bulk import */
-const BULK_LIMIT = 500;
+const BULK_LIMIT = 100;
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
     const context = await getAuthContext(req);
     if (!context) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    // Tokens are Read-Only
+    const { id } = await params;
+    const access = await getProjectAccess(id, context);
+    if (!access) return NextResponse.json({ error: 'Project not found or no access' }, { status: 404 });
+
+    // Permissions
     if (context.token) {
         return NextResponse.json({ error: 'Tokens are read-only' }, { status: 403 });
     }
-
-    const { id } = await params;
+    if (access.role === 'viewer') {
+        return NextResponse.json({ error: 'Viewers cannot import environment variables.' }, { status: 403 });
+    }
 
     // Validate request body
     const body = await req.json().catch(() => null);
@@ -27,14 +32,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         return NextResponse.json(validationErrorResponse(parsed.error), { status: 400 });
     }
     const { content } = parsed.data;
-
-    // Verify project ownership
-    const [project] = await db.select().from(projects).where(and(
-        eq(projects.id, id),
-        eq(projects.user_id, context.user.id),
-        isNull(projects.deleted_at)
-    ));
-    if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 404 });
 
     // --- Parse .env content ---
     const lines = content.split('\n');

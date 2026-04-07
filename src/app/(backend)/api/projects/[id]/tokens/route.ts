@@ -1,22 +1,17 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { getAuthContext, getProjectAccess } from '@/lib/api-auth';
 import { db } from '@/lib/db';
-import { projects, api_tokens, tokenCreateSchema, validationErrorResponse } from '@/db/schema';
-import { and, eq, isNull } from 'drizzle-orm';
+import { api_tokens, tokenCreateSchema, validationErrorResponse } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import { generateToken, hashToken } from '@/lib/tokens';
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
-    const session = await auth.api.getSession({ headers: req.headers });
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const context = await getAuthContext(req);
+    if (!context) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const { id } = await params;
 
-    // Verify ownership
-    const [project] = await db.select().from(projects).where(and(
-        eq(projects.id, id),
-        eq(projects.user_id, session.user.id),
-        isNull(projects.deleted_at)
-    ));
-    if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+    const access = await getProjectAccess(id, context);
+    if (!access) return NextResponse.json({ error: 'Project not found or no access' }, { status: 404 });
 
     try {
         const tokens = await db.select({
@@ -35,9 +30,17 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 }
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
-    const session = await auth.api.getSession({ headers: req.headers });
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const context = await getAuthContext(req);
+    if (!context) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const { id } = await params;
+
+    const access = await getProjectAccess(id, context);
+    if (!access) return NextResponse.json({ error: 'Project not found or no access' }, { status: 404 });
+
+    // Permissions: Only Owner and Admin can manage tokens
+    if (access.role !== 'owner' && access.role !== 'admin') {
+        return NextResponse.json({ error: 'Only team owners and admins can manage API tokens' }, { status: 403 });
+    }
 
     const body = await req.json().catch(() => null);
     const parsed = tokenCreateSchema.safeParse(body);
@@ -46,14 +49,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
     const { name, expires_in_days } = parsed.data;
 
-    // Verify project ownership
-    const [project] = await db.select().from(projects).where(and(
-        eq(projects.id, id),
-        eq(projects.user_id, session.user.id),
-        isNull(projects.deleted_at)
-    ));
-    if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 404 });
-
     try {
         const rawToken = generateToken();
         const hashedToken = hashToken(rawToken);
@@ -61,7 +56,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         expiresAt.setDate(expiresAt.getDate() + expires_in_days);
 
         const [newToken] = await db.insert(api_tokens).values({
-            user_id: session.user.id,
+            user_id: context.user.id,
             project_id: id,
             name,
             token_hash: hashedToken,

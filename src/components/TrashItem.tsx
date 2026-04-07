@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Trash2, RotateCcw, Key, Clock } from 'lucide-react';
+import { Trash2, Key, Clock, X } from 'lucide-react';
 
 interface TrashItemProps {
     id: string;
@@ -7,9 +7,10 @@ interface TrashItemProps {
     deletedAt?: Date | string | null;
     onRestore: (id: string) => Promise<void>;
     onHardDelete: (id: string) => void;
+    disabled?: boolean;
 }
 
-export default function TrashItem({ id, keyName, deletedAt, onRestore, onHardDelete }: TrashItemProps) {
+export default function TrashItem({ id, keyName, deletedAt, onRestore, onHardDelete, disabled }: TrashItemProps) {
     const [restoring, setRestoring] = useState(false);
 
     const handleRestore = async () => {
@@ -38,26 +39,28 @@ export default function TrashItem({ id, keyName, deletedAt, onRestore, onHardDel
                 </div>
             </div>
 
-            <div className="flex items-center gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity justify-end pl-14 sm:pl-0 mt-2 sm:mt-0">
-                <button
-                    onClick={handleRestore}
-                    disabled={restoring}
-                    className="p-2 sm:px-4 sm:py-2 flex items-center gap-2 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 rounded-xl transition-all font-bold text-xs"
-                    title="Restore Variable"
-                >
-                    <RotateCcw size={16} className={restoring ? 'animate-spin' : ''} />
-                    <span className="hidden sm:inline">{restoring ? 'Restoring...' : 'Restore'}</span>
-                </button>
-                <button
-                    onClick={() => onHardDelete(id)}
-                    className="p-2 sm:px-4 sm:py-2 flex items-center gap-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-xl transition-all font-bold text-xs"
-                    title="Permanently Delete"
-                >
-                    <Trash2 size={16} />
-                    <span className="hidden sm:inline">Delete Forever</span>
-                </button>
-            </div>
-            
+            {!disabled && (
+                <div className="flex items-center gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity justify-end pl-14 sm:pl-0 mt-2 sm:mt-0">
+                    <button
+                        onClick={handleRestore}
+                        disabled={restoring}
+                        className="p-2 sm:px-4 sm:py-2 flex items-center gap-2 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 rounded-xl transition-all font-bold text-xs"
+                        title="Restore Variable"
+                    >
+                        <X size={16} className={restoring ? 'animate-spin' : ''} />
+                        <span className="hidden sm:inline">{restoring ? 'Restoring...' : 'Restore'}</span>
+                    </button>
+                    <button
+                        onClick={() => onHardDelete(id)}
+                        className="p-2 sm:px-4 sm:py-2 flex items-center gap-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-xl transition-all font-bold text-xs"
+                        title="Permanently Delete"
+                    >
+                        <Trash2 size={16} />
+                        <span className="hidden sm:inline">Delete Forever</span>
+                    </button>
+                </div>
+            )}
+
             {/* Soft decorative background element */}
             <div className="absolute right-0 top-0 w-32 h-32 bg-gray-500/5 rounded-full blur-3xl -z-10 group-hover:bg-gray-500/10 transition-colors pointer-events-none" />
         </div>
