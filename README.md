@@ -1,36 +1,82 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🛡️ Envyx — Your Secret Vault
 
-## Getting Started
+**Envyx** is a high-performance, ultra-secure environment variable management system. Built for modern development teams who prioritize security, speed, and a seamless developer experience.
 
-First, run the development server:
+![Envyx Dashboard](https://images.unsplash.com/photo-1633356122544-f134324a6cee?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&h=600&q=80)
 
+---
+
+## ✨ Features
+
+- 🔐 **Military-Grade Encryption**: Every secret is encrypted using **AES-256-GCM** before touching the database. Even we can't see your data.
+- 📦 **Project Isolation**: Group your variables by project. Each project has its own secure vault.
+- 🚀 **Bulk Operations**: 
+  - **Bulk Import**: Paste your entire `.env` file and we'll parse and encrypt everything instantly.
+  - **Bulk Copy**: Copy all project variables in one click to your clipboard in `KEY=VALUE` format.
+- 📜 **Audit History**: Track every change. Who created, updated, or deleted a secret, and when.
+- 🔑 **Secure Authentication**: Powerered by **Better-Auth** with support for secure login and registration.
+- 🌑 **Premium Dark UI**: A sleek, dark-mode first interface designed for high-focus development.
+
+## 🛠️ Tech Stack
+
+- **Framework**: [Next.js 15](https://nextjs.org/) (App Router)
+- **Database**: [PostgreSQL](https://www.postgresql.org/)
+- **ORM**: [Drizzle ORM](https://orm.drizzle.team/)
+- **Auth**: [Better-Auth](https://www.better-auth.com/)
+- **Styling**: [Tailwind CSS 4](https://tailwindcss.com/)
+- **Icons**: [Lucide React](https://lucide.dev/)
+- **State**: React Hooks & Context API
+
+## 🚀 Getting Started
+
+### 1. Clone & Install
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/hasnain-tanoli/envyx.git
+cd envyx
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Configure Environment
+Create a `.env` file in the root directory:
+```env
+DATABASE_URL=postgres://user:pass@localhost:5432/envyx
+ENCRYPTION_KEY=your_32_character_hex_key
+BETTER_AUTH_SECRET=your_auth_secret
+BETTER_AUTH_URL=http://localhost:3000
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 3. Database Migration
+```bash
+pnpm db:push
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 4. Run Development Server
+```bash
+pnpm dev
+```
 
-## Learn More
+## 🏗️ Project Structure
 
-To learn more about Next.js, take a look at the following resources:
+```text
+src/
+├── app/               # Next.js Routes (Backend & Frontend)
+│   ├── (backend)/     # API Endpoints
+│   └── (frontend)/    # Dashboard & Pages
+├── components/        # Reusable UI Components
+├── db/                # Database Schemas & Client
+├── lib/               # Shared Utilities (Crypto, API, Auth)
+├── types/             # TypeScript Definitions
+└── styles/            # Global CSS & Tailwind Config
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🔐 Security Information
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Envyx uses a zero-knowledge approach for your secrets. The private encryption key exists only on your server environment. This ensures that even in the case of a database breach, your secrets remain unreadable without the specific server-side key.
 
-## Deploy on Vercel
+## 📄 License
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+This project is licensed under the MIT License.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+Built with ❤️ by [Hasnain Tanoli](https://github.com/hasnain-tanoli)
