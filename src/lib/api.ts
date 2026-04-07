@@ -166,3 +166,20 @@ export async function getTeamProjects(teamId: string) {
     });
     return handleResponse(res);
 }
+
+// --- User Profile APIs ---
+
+export async function getUserProfile() {
+    const res = await fetch('/api/user/profile', { credentials: 'include' });
+    return handleResponse(res);
+}
+
+export async function updateUserProfile(data: { name: string; image?: string }) {
+    const res = await fetch('/api/user/profile', {
+        method: 'PUT',
+        credentials: 'include',
+        body: JSON.stringify(data),
+        headers: { 'Content-Type': 'application/json' },
+    });
+    return handleResponse(res);
+}

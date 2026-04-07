@@ -49,12 +49,15 @@ export default function Navbar() {
                         </Link>
 
                         <div className="flex items-center gap-4 pl-6 border-l border-white/10">
-                            <div className="flex items-center gap-2 text-sm font-medium text-gray-300">
-                                <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30">
+                            <Link
+                                href="/profile"
+                                className="flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-indigo-400 group transition-all"
+                            >
+                                <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30 group-hover:border-indigo-400 group-hover:scale-110 transition-all">
                                     <UserIcon size={16} className="text-indigo-400" />
                                 </div>
-                                <span className="hidden sm:inline">{session.user.name}</span>
-                            </div>
+                                <span className="hidden sm:inline group-hover:translate-x-1 transition-transform">{session.user.name}</span>
+                            </Link>
 
                             <button
                                 onClick={handleSignOut}
