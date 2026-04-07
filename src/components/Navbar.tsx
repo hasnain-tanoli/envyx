@@ -15,6 +15,8 @@ export default function Navbar() {
         router.push('/login');
     }
 
+    if (path === '/login' || path === '/register') return null;
+
     return (
         <nav className="glass sticky top-0 z-50 px-6 py-4 flex justify-between items-center backdrop-blur-md shadow-sm">
             <Link href="/" className="hover:opacity-80 transition-opacity">
