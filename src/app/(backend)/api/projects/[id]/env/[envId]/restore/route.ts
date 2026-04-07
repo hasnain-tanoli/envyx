@@ -1,17 +1,23 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { getAuthContext } from '@/lib/api-auth';
 import { db } from '@/lib/db';
 import { projects, env, env_audit_log } from '@/db/schema';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string, envId: string }> }) {
-    const session = await auth.api.getSession({ headers: req.headers });
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const context = await getAuthContext(req);
+    if (!context) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    // Tokens are Read-Only
+    if (context.token) {
+        return NextResponse.json({ error: 'Tokens are read-only' }, { status: 403 });
+    }
+
     const { id, envId } = await params;
 
     const [project] = await db.select().from(projects).where(and(
         eq(projects.id, id),
-        eq(projects.user_id, session.user.id),
+        eq(projects.user_id, context.user.id),
         isNull(projects.deleted_at)
     ));
     if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 404 });
@@ -45,13 +51,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
         await db.insert(env_audit_log).values({
             env_id: envId,
-            user_id: session.user.id,
+            user_id: context.user.id,
             action: 'restore',
             key_name: trashedEnv.key,
         });
 
         await db.update(projects)
-            .set({ env_count: (project.env_count || 0) + 1 })
+            .set({ env_count: sql`COALESCE(${projects.env_count}, 0) + 1` })
             .where(eq(projects.id, id));
 
         return NextResponse.json({ success: true });

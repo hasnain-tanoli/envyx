@@ -8,6 +8,8 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import AuditTimeline from '@/components/AuditTimeline';
 import ConnectPanel from '@/components/ConnectPanel';
 import TrashItem from '@/components/TrashItem';
+import { TokenManager } from '@/components/TokenManager';
+import { ExportPanel } from '@/components/ExportPanel';
 import { getEnvs, addEnv, deleteEnv, updateEnv, getProject, bulkImportEnvs, getTrashEnvs, restoreEnv, hardDeleteEnv } from '@/lib/api';
 import { Environment, Project } from '@/types';
 import { useToast } from '@/components/Toast';
@@ -30,7 +32,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-type Tab = 'variables' | 'activity' | 'connect' | 'trash';
+type Tab = 'variables' | 'activity' | 'connect' | 'trash' | 'access';
 
 export default function ProjectDetailPage() {
     const params = useParams();
@@ -273,6 +275,7 @@ export default function ProjectDetailPage() {
                     { id: 'variables', icon: Database, label: 'Variables' },
                     { id: 'activity', icon: History, label: 'Activity' },
                     { id: 'connect', icon: Terminal, label: 'Connect CLI' },
+                    { id: 'access', icon: Shield, label: 'Access & Export' },
                     { id: 'trash', icon: Trash2, label: 'Trash' }
                 ].map(tab => (
                     <button
@@ -359,6 +362,11 @@ export default function ProjectDetailPage() {
                     <AuditTimeline projectId={projectId} />
                 ) : activeTab === 'connect' ? (
                     <ConnectPanel projectId={projectId} />
+                ) : activeTab === 'access' ? (
+                    <div className="space-y-8">
+                        <ExportPanel projectId={projectId} />
+                        <TokenManager projectId={projectId} />
+                    </div>
                 ) : (
                     <>
                         <div className="mb-6 px-2">

@@ -19,9 +19,11 @@ export default function ConnectPanel({ projectId }: { projectId: string }) {
   -H "Authorization: Bearer YOUR_API_TOKEN"`;
 
     const fetchSnippet = `const res = await fetch('https://envyx.app/api/projects/${projectId}/env', {
-  headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' }
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN'
+  }
 });
-const envs = await res.json();`;
+const data = await res.json();`;
 
     return (
         <div className="space-y-8 py-4">

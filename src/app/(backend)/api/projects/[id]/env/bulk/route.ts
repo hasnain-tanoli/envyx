@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { getAuthContext } from '@/lib/api-auth';
 import { db } from '@/lib/db';
 import { projects, env, env_audit_log } from '@/db/schema';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import { encryptValue } from '@/lib/crypto';
 import { envBulkSchema, envCreateSchema, validationErrorResponse } from '@/db/schema';
 
@@ -10,8 +10,14 @@ import { envBulkSchema, envCreateSchema, validationErrorResponse } from '@/db/sc
 const BULK_LIMIT = 500;
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
-    const session = await auth.api.getSession({ headers: req.headers });
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const context = await getAuthContext(req);
+    if (!context) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    // Tokens are Read-Only
+    if (context.token) {
+        return NextResponse.json({ error: 'Tokens are read-only' }, { status: 403 });
+    }
+
     const { id } = await params;
 
     // Validate request body
@@ -25,7 +31,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     // Verify project ownership
     const [project] = await db.select().from(projects).where(and(
         eq(projects.id, id),
-        eq(projects.user_id, session.user.id),
+        eq(projects.user_id, context.user.id),
         isNull(projects.deleted_at)
     ));
     if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 404 });
@@ -90,7 +96,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
                 // Audit log — metadata only, never secret value
                 await tx.insert(env_audit_log).values({
                     env_id: newEnv.id,
-                    user_id: session.user.id,
+                    user_id: context.user.id,
                     action: 'create',
                     key_name: key,
                 });
@@ -102,7 +108,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             // Update env_count once
             if (inserted.length > 0) {
                 await tx.update(projects)
-                    .set({ env_count: (project.env_count || 0) + inserted.length })
+                    .set({ env_count: sql`COALESCE(${projects.env_count}, 0) + ${inserted.length}` })
                     .where(eq(projects.id, id));
             }
         });

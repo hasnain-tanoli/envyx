@@ -31,4 +31,4 @@ export const projectCreateSchema = z.object({
         .default('development'),
 });
 
-export const projectUpdateSchema = projectCreateSchema;
+export const projectUpdateSchema = projectCreateSchema.partial();

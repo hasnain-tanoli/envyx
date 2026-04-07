@@ -1,14 +1,20 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { getAuthContext } from '@/lib/api-auth';
 import { db } from '@/lib/db';
 import { projects, env, env_audit_log } from '@/db/schema';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import { encryptValue } from '@/lib/crypto';
 import { envUpdateSchema, validationErrorResponse } from '@/db/schema';
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string, envId: string }> }) {
-    const session = await auth.api.getSession({ headers: req.headers });
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const context = await getAuthContext(req);
+    if (!context) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    // Tokens are Read-Only
+    if (context.token) {
+        return NextResponse.json({ error: 'Tokens are read-only' }, { status: 403 });
+    }
+
     const { id, envId } = await params;
 
     // Validate request body
@@ -21,7 +27,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     const [project] = await db.select().from(projects).where(and(
         eq(projects.id, id),
-        eq(projects.user_id, session.user.id),
+        eq(projects.user_id, context.user.id),
         isNull(projects.deleted_at)
     ));
     if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 404 });
@@ -33,6 +39,20 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     ));
     if (!existingEnv) return NextResponse.json({ error: 'Env not found' }, { status: 404 });
 
+    // Check for collision if the key is changing
+    if (key !== existingEnv.key) {
+        const [collision] = await db.select().from(env).where(and(
+            eq(env.project_id, id),
+            eq(env.key, key),
+            isNull(env.deleted_at)
+        ));
+        if (collision) {
+            return NextResponse.json({ 
+                error: `Environment variable "${key}" already exists in this project.` 
+            }, { status: 409 });
+        }
+    }
+
     try {
         const encryptedValue = encryptValue(value);
         const [updatedEnv] = await db.update(env)
@@ -43,7 +63,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         // Audit log — store only safe metadata, never secret values
         await db.insert(env_audit_log).values({
             env_id: envId,
-            user_id: session.user.id,
+            user_id: context.user.id,
             action: 'update',
             key_name: key,
         });
@@ -55,13 +75,19 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string, envId: string }> }) {
-    const session = await auth.api.getSession({ headers: req.headers });
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const context = await getAuthContext(req);
+    if (!context) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    // Tokens are Read-Only
+    if (context.token) {
+        return NextResponse.json({ error: 'Tokens are read-only' }, { status: 403 });
+    }
+
     const { id, envId } = await params;
 
     const [project] = await db.select().from(projects).where(and(
         eq(projects.id, id),
-        eq(projects.user_id, session.user.id),
+        eq(projects.user_id, context.user.id),
         isNull(projects.deleted_at)
     ));
     if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 404 });
@@ -79,13 +105,13 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
         // Audit log — store only safe metadata, never secret values
         await db.insert(env_audit_log).values({
             env_id: envId,
-            user_id: session.user.id,
+            user_id: context.user.id,
             action: 'delete',
             key_name: existingEnv.key,
         });
 
         await db.update(projects)
-            .set({ env_count: Math.max((project.env_count || 0) - 1, 0) })
+            .set({ env_count: sql`GREATEST(COALESCE(${projects.env_count}, 0) - 1, 0)` })
             .where(eq(projects.id, id));
 
         return NextResponse.json({ success: true });
