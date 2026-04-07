@@ -23,6 +23,11 @@ export async function getEnvs(projectId: string): Promise<Environment[]> {
     return handleResponse(res);
 }
 
+export async function getTrashEnvs(projectId: string): Promise<Environment[]> {
+    const res = await fetch(`/api/projects/${projectId}/env/trash`, { credentials: 'include' });
+    return handleResponse(res);
+}
+
 export async function addEnv(projectId: string, key: string, value: string) {
     const res = await fetch(`/api/projects/${projectId}/env`, {
         method: 'POST',
@@ -47,6 +52,32 @@ export async function deleteEnv(projectId: string, envId: string) {
     const res = await fetch(`/api/projects/${projectId}/env/${envId}`, {
         method: 'DELETE',
         credentials: 'include',
+    });
+    return handleResponse(res);
+}
+
+export async function restoreEnv(projectId: string, envId: string) {
+    const res = await fetch(`/api/projects/${projectId}/env/${envId}/restore`, {
+        method: 'POST',
+        credentials: 'include',
+    });
+    return handleResponse(res);
+}
+
+export async function hardDeleteEnv(projectId: string, envId: string) {
+    const res = await fetch(`/api/projects/${projectId}/env/${envId}/hard-delete`, {
+        method: 'DELETE',
+        credentials: 'include',
+    });
+    return handleResponse(res);
+}
+
+export async function bulkImportEnvs(projectId: string, content: string) {
+    const res = await fetch(`/api/projects/${projectId}/env/bulk`, {
+        method: 'POST',
+        credentials: 'include',
+        body: JSON.stringify({ content }),
+        headers: { 'Content-Type': 'application/json' },
     });
     return handleResponse(res);
 }

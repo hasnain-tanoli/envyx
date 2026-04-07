@@ -7,16 +7,17 @@ import Modal from '@/components/Modal';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import AuditTimeline from '@/components/AuditTimeline';
 import ConnectPanel from '@/components/ConnectPanel';
-import { getEnvs, addEnv, deleteEnv, updateEnv, getProject } from '@/lib/api';
+import TrashItem from '@/components/TrashItem';
+import { getEnvs, addEnv, deleteEnv, updateEnv, getProject, bulkImportEnvs, getTrashEnvs, restoreEnv, hardDeleteEnv } from '@/lib/api';
 import { Environment, Project } from '@/types';
 import { useToast } from '@/components/Toast';
-import { 
-    Plus, 
-    ArrowLeft, 
-    Search, 
-    FileText, 
-    Loader2, 
-    Save, 
+import {
+    Plus,
+    ArrowLeft,
+    Search,
+    FileText,
+    Loader2,
+    Save,
     AlertCircle,
     Shield,
     Rocket,
@@ -24,27 +25,26 @@ import {
     Check,
     History,
     Terminal,
-    Database
+    Database,
+    Trash2
 } from 'lucide-react';
 import Link from 'next/link';
 
-type Tab = 'variables' | 'activity' | 'connect';
+type Tab = 'variables' | 'activity' | 'connect' | 'trash';
 
 export default function ProjectDetailPage() {
     const params = useParams();
     const projectId = params.id as string;
     const { showToast } = useToast();
-
     const [project, setProject] = useState<Project | null>(null);
     const [envs, setEnvs] = useState<Environment[]>([]);
+    const [trashEnvs, setTrashEnvs] = useState<Environment[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState<Tab>('variables');
-    
     const [singleOpen, setSingleOpen] = useState(false);
     const [bulkOpen, setBulkOpen] = useState(false);
-    
     const [newEnv, setNewEnv] = useState({ key: '', value: '' });
     const [envFile, setEnvFile] = useState('');
     const [submitting, setSubmitting] = useState(false);
@@ -52,18 +52,22 @@ export default function ProjectDetailPage() {
     const [hasMounted, setHasMounted] = useState(false);
     const [confirmEnvOpen, setConfirmEnvOpen] = useState(false);
     const [pendingDeleteEnvId, setPendingDeleteEnvId] = useState<string | null>(null);
+    const [confirmHardDeleteOpen, setConfirmHardDeleteOpen] = useState(false);
+    const [pendingHardDeleteId, setPendingHardDeleteId] = useState<string | null>(null);
 
     const fetchData = useCallback(async () => {
         if (!projectId) return;
         setLoading(true);
         setError(null);
         try {
-            const [projectData, envsData] = await Promise.all([
+            const [projectData, envsData, trashData] = await Promise.all([
                 getProject(projectId),
-                getEnvs(projectId)
+                getEnvs(projectId),
+                getTrashEnvs(projectId)
             ]);
             setProject(projectData);
             setEnvs(Array.isArray(envsData) ? envsData : []);
+            setTrashEnvs(Array.isArray(trashData) ? trashData : []);
         } catch (error: unknown) {
             console.error('Failed to fetch project data:', error);
             setError(error instanceof Error ? error.message : 'Unknown error');
@@ -81,7 +85,7 @@ export default function ProjectDetailPage() {
     const handleAddSingle = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newEnv.key || !newEnv.value) return;
-        
+
         setSubmitting(true);
         try {
             await addEnv(projectId, newEnv.key.toUpperCase(), newEnv.value);
@@ -89,7 +93,7 @@ export default function ProjectDetailPage() {
             setSingleOpen(false);
             setNewEnv({ key: '', value: '' });
             fetchData();
-        } catch (_error) {
+        } catch {
             showToast('Failed to add variable', 'error');
         } finally {
             setSubmitting(false);
@@ -102,24 +106,17 @@ export default function ProjectDetailPage() {
 
         setSubmitting(true);
         try {
-            const lines = envFile.split('\n');
-            let count = 0;
-            for (const line of lines) {
-                const trimmed = line.trim();
-                if (!trimmed || trimmed.startsWith('#')) continue;
-                
-                const [key, ...valueParts] = trimmed.split('=');
-                if (key && valueParts.length > 0) {
-                    const value = valueParts.join('=').trim().replace(/^['"](.*)['"]$/, '$1');
-                    await addEnv(projectId, key.trim().toUpperCase(), value);
-                    count++;
-                }
+            const result = await bulkImportEnvs(projectId, envFile);
+            const skippedCount = result.skipped?.length ?? 0;
+            if (skippedCount > 0) {
+                showToast(`Imported ${result.inserted} variables (${skippedCount} skipped)`, 'success');
+            } else {
+                showToast(`Imported ${result.inserted} variables`, 'success');
             }
-            showToast(`Imported ${count} variables`, 'success');
             setBulkOpen(false);
             setEnvFile('');
             fetchData();
-        } catch (_error) {
+        } catch {
             showToast('Bulk import failed', 'error');
         } finally {
             setSubmitting(false);
@@ -138,7 +135,7 @@ export default function ProjectDetailPage() {
             await deleteEnv(projectId, pendingDeleteEnvId);
             showToast('Variable deleted', 'success');
             fetchData();
-        } catch (_error) {
+        } catch {
             showToast('Delete failed', 'error');
         } finally {
             setPendingDeleteEnvId(null);
@@ -156,13 +153,43 @@ export default function ProjectDetailPage() {
         }
     }, [projectId, fetchData, showToast]);
 
+    const handleRestore = useCallback(async (envId: string) => {
+        try {
+            await restoreEnv(projectId, envId);
+            showToast('Variable restored', 'success');
+            fetchData();
+        } catch (error) {
+            showToast(error instanceof Error ? error.message : 'Restore failed', 'error');
+            throw error;
+        }
+    }, [projectId, fetchData, showToast]);
+
+    const handleConfirmHardDelete = useCallback((envId: string) => {
+        setPendingHardDeleteId(envId);
+        setConfirmHardDeleteOpen(true);
+    }, []);
+
+    const executeHardDelete = useCallback(async () => {
+        if (!pendingHardDeleteId) return;
+        setConfirmHardDeleteOpen(false);
+        try {
+            await hardDeleteEnv(projectId, pendingHardDeleteId);
+            showToast('Permanently deleted', 'success');
+            fetchData();
+        } catch {
+            showToast('Delete failed', 'error');
+        } finally {
+            setPendingHardDeleteId(null);
+        }
+    }, [projectId, pendingHardDeleteId, fetchData, showToast]);
+
     const handleBulkCopy = useCallback(async () => {
         if (!Array.isArray(envs) || envs.length === 0) return;
-        
+
         const bulkText = envs
             .map(e => `${e.key}=${e.value}`)
             .join('\n');
-            
+
         await navigator.clipboard.writeText(bulkText);
         setBulkCopied(true);
         showToast('All variables copied to clipboard', 'success');
@@ -212,7 +239,7 @@ export default function ProjectDetailPage() {
                     <div className="flex gap-4">
                         {hasMounted && activeTab === 'variables' && (
                             <>
-                                <button 
+                                <button
                                     onClick={handleBulkCopy}
                                     disabled={!envs?.length || bulkCopied}
                                     className={`glass px-5 py-3 rounded-2xl flex items-center gap-2 font-bold transition-all border ${bulkCopied ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'text-gray-300 hover:text-white hover:bg-white/10 border-white/5 disabled:opacity-30'}`}
@@ -220,14 +247,14 @@ export default function ProjectDetailPage() {
                                     {bulkCopied ? <Check size={18} /> : <Copy size={18} />}
                                     {bulkCopied ? 'Copied' : 'Bulk Copy'}
                                 </button>
-                                <button 
+                                <button
                                     onClick={() => setBulkOpen(true)}
                                     className="glass px-5 py-3 rounded-2xl flex items-center gap-2 font-bold text-gray-300 hover:text-white hover:bg-white/10 transition-all border-white/5"
                                 >
                                     <FileText size={18} />
                                     Bulk Import
                                 </button>
-                                <button 
+                                <button
                                     onClick={() => setSingleOpen(true)}
                                     className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-2xl flex items-center gap-2 font-bold shadow-xl shadow-indigo-600/20 active:scale-95 transition-all"
                                 >
@@ -241,20 +268,20 @@ export default function ProjectDetailPage() {
             </div>
 
             {/* Tab Switcher */}
-            <div className="flex gap-2 mb-6 bg-white/5 p-1.5 rounded-2xl w-fit border border-white/5 backdrop-blur-sm">
+            <div className="flex gap-2 mb-6 bg-white/5 p-1.5 rounded-2xl w-fit border border-white/5 backdrop-blur-sm overflow-x-auto max-w-full">
                 {[
                     { id: 'variables', icon: Database, label: 'Variables' },
-                    { id: 'activity', icon: History, label: 'Activity History' },
-                    { id: 'connect', icon: Terminal, label: 'Connect CLI' }
+                    { id: 'activity', icon: History, label: 'Activity' },
+                    { id: 'connect', icon: Terminal, label: 'Connect CLI' },
+                    { id: 'trash', icon: Trash2, label: 'Trash' }
                 ].map(tab => (
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id as Tab)}
-                        className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                            activeTab === tab.id 
-                            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' 
+                        className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === tab.id
+                            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
                             : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'
-                        }`}
+                            }`}
                     >
                         <tab.icon size={16} />
                         {tab.label}
@@ -278,7 +305,7 @@ export default function ProjectDetailPage() {
                             <h3 className="text-white font-bold text-lg">Vault Connection Error</h3>
                             <p className="text-gray-500 mt-1 max-w-sm">{error}</p>
                         </div>
-                        <button 
+                        <button
                             onClick={fetchData}
                             className="mt-4 px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-indigo-600/20"
                         >
@@ -290,8 +317,8 @@ export default function ProjectDetailPage() {
                         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8 px-2">
                             <div className="relative w-full sm:max-w-xs">
                                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-                                <input 
-                                    type="text" 
+                                <input
+                                    type="text"
                                     placeholder="Search encrypted keys..."
                                     className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all placeholder:text-gray-600 font-medium"
                                     value={searchTerm}
@@ -306,11 +333,11 @@ export default function ProjectDetailPage() {
                         {filteredEnvs.length > 0 ? (
                             <div className="flex flex-col gap-3">
                                 {filteredEnvs.map(e => (
-                                    <EnvItem 
-                                        key={e.id} 
+                                    <EnvItem
+                                        key={e.id}
                                         id={e.id}
-                                        keyName={e.key} 
-                                        value={e.value} 
+                                        keyName={e.key}
+                                        value={e.value}
                                         error={e.error}
                                         onDelete={handleDelete}
                                         onUpdate={handleUpdate}
@@ -330,8 +357,36 @@ export default function ProjectDetailPage() {
                     </>
                 ) : activeTab === 'activity' ? (
                     <AuditTimeline projectId={projectId} />
-                ) : (
+                ) : activeTab === 'connect' ? (
                     <ConnectPanel projectId={projectId} />
+                ) : (
+                    <>
+                        <div className="mb-6 px-2">
+                            <h3 className="text-xl font-bold text-white mb-2">Trash</h3>
+                            <p className="text-sm text-gray-400">Soft-deleted variables are kept here. You can restore them to active use, or permanently delete them along with their audit history.</p>
+                        </div>
+                        {trashEnvs.length > 0 ? (
+                            <div className="flex flex-col gap-3">
+                                {trashEnvs.map(e => (
+                                    <TrashItem
+                                        key={e.id}
+                                        id={e.id}
+                                        keyName={e.key}
+                                        deletedAt={e.deleted_at}
+                                        onRestore={handleRestore}
+                                        onHardDelete={handleConfirmHardDelete}
+                                    />
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-32 flex flex-col items-center gap-4">
+                                <div className="p-4 rounded-2xl bg-gray-500/5 text-gray-400/50">
+                                    <Trash2 size={40} />
+                                </div>
+                                <p className="text-gray-500 font-medium">Your trash is empty.</p>
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
 
@@ -344,8 +399,8 @@ export default function ProjectDetailPage() {
                 <form onSubmit={handleAddSingle} className="space-y-6">
                     <div className="space-y-2">
                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Key Name</label>
-                        <input 
-                            type="text" 
+                        <input
+                            type="text"
                             required
                             placeholder="DATABASE_URL"
                             className="w-full glass bg-white/5 border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all font-mono text-sm placeholder:text-gray-700"
@@ -355,8 +410,8 @@ export default function ProjectDetailPage() {
                     </div>
                     <div className="space-y-2">
                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Secret Value</label>
-                        <input 
-                            type="password" 
+                        <input
+                            type="password"
                             required
                             placeholder="••••••••••••••••"
                             className="w-full glass bg-white/5 border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all font-mono text-sm placeholder:text-gray-700"
@@ -364,8 +419,8 @@ export default function ProjectDetailPage() {
                             onChange={e => setNewEnv(prev => ({ ...prev, value: e.target.value }))}
                         />
                     </div>
-                    <button 
-                        type="submit" 
+                    <button
+                        type="submit"
                         disabled={submitting}
                         className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white py-4 rounded-2xl font-bold text-lg shadow-xl shadow-indigo-600/20 active:scale-95 transition-all flex items-center justify-center gap-2"
                     >
@@ -383,7 +438,7 @@ export default function ProjectDetailPage() {
                 </div>
                 <form onSubmit={handleAddBulk} className="space-y-6">
                     <div className="relative">
-                        <textarea 
+                        <textarea
                             rows={12}
                             required
                             placeholder="DB_URI=postgres://...&#10;API_KEY=sk_test_..."
@@ -392,8 +447,8 @@ export default function ProjectDetailPage() {
                             onChange={e => setEnvFile(e.target.value)}
                         />
                     </div>
-                    <button 
-                        type="submit" 
+                    <button
+                        type="submit"
                         disabled={submitting}
                         className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white py-4 rounded-2xl font-bold text-lg shadow-xl shadow-indigo-600/20 active:scale-95 transition-all flex items-center justify-center gap-2"
                     >
@@ -406,12 +461,23 @@ export default function ProjectDetailPage() {
             <ConfirmDialog
                 isOpen={confirmEnvOpen}
                 title="Delete Variable?"
-                message="This will permanently remove this encrypted variable from the vault. This action cannot be undone."
-                confirmLabel="Yes, Delete"
-                cancelLabel="Keep It"
+                message="This will move this variable to the Trash. You can restore it later if needed."
+                confirmLabel="Move to Trash"
+                cancelLabel="Cancel"
                 variant="danger"
                 onConfirm={confirmDeleteEnv}
                 onCancel={() => { setConfirmEnvOpen(false); setPendingDeleteEnvId(null); }}
+            />
+
+            <ConfirmDialog
+                isOpen={confirmHardDeleteOpen}
+                title="Permanently Delete?"
+                message="This will completely wipe out this variable and its entire audit history from the database. This action cannot be reversed."
+                confirmLabel="Delete Forever"
+                cancelLabel="Cancel"
+                variant="danger"
+                onConfirm={executeHardDelete}
+                onCancel={() => { setConfirmHardDeleteOpen(false); setPendingHardDeleteId(null); }}
             />
         </div>
     );

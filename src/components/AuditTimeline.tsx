@@ -5,11 +5,10 @@ import { Loader2, History, User, Activity, AlertCircle } from 'lucide-react';
 
 interface AuditLog {
     id: string;
-    action: string;
+    action: string; // 'create' | 'update' | 'delete'
     user_id: string;
     env_id: string;
-    old_value: string | null;
-    new_value: string | null;
+    key_name: string;
     created_at: string;
 }
 
@@ -72,50 +71,41 @@ export default function AuditTimeline({ projectId }: { projectId: string }) {
                     {i !== logs.length - 1 && (
                         <div className="absolute left-[21px] top-10 bottom-[-32px] w-[2px] bg-white/5" />
                     )}
-                    
+
                     {/* Icon Circle */}
                     <div className={`shrink-0 w-11 h-11 rounded-full flex items-center justify-center border transition-all ${
-                        log.action === 'CREATE' ? 'bg-green-500/10 border-green-500/20 text-green-400' :
-                        log.action === 'DELETE' ? 'bg-red-500/10 border-red-500/20 text-red-400' :
+                        log.action === 'create' ? 'bg-green-500/10 border-green-500/20 text-green-400' :
+                        log.action === 'delete' ? 'bg-red-500/10 border-red-500/20 text-red-400' :
                         'bg-indigo-500/10 border-indigo-500/20 text-indigo-400'
                     }`}>
-                        {log.action === 'CREATE' ? <Activity size={18} /> : 
-                         log.action === 'DELETE' ? <Activity size={18} /> : 
-                         <Activity size={18} />}
+                        <Activity size={18} />
                     </div>
 
                     {/* Content */}
                     <div className="flex-1 pt-1">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2">
-                            <h4 className="text-white font-bold tracking-tight">
+                            <h4 className="text-white font-bold tracking-tight capitalize">
                                 {log.action}{' '}
-                                <span className="text-gray-500 font-medium lowercase">variable change</span>
+                                <span className="text-gray-500 font-medium lowercase">variable</span>
                             </h4>
                             <span className="text-[10px] font-black uppercase tracking-widest text-gray-600 px-2 py-1 bg-white/5 rounded border border-white/5">
                                 {new Date(log.created_at).toLocaleString()}
                             </span>
                         </div>
-                        <div className="flex items-center gap-2 text-xs text-gray-500 font-medium mb-3">
-                            <User size={12} className="text-indigo-500/50" />
-                            <span>ID: {log.user_id.substring(0, 8)}...</span>
+
+                        {/* Key name — safe metadata */}
+                        <div className="flex items-center gap-2 mb-2">
+                            <code className={`text-xs font-mono px-2 py-1 rounded-lg border ${
+                                log.action === 'create' ? 'bg-green-500/5 border-green-500/10 text-green-400' :
+                                log.action === 'delete' ? 'bg-red-500/5 border-red-500/10 text-red-400' :
+                                'bg-indigo-500/5 border-indigo-500/10 text-indigo-400'
+                            }`}>{log.key_name}</code>
                         </div>
-                        
-                        {(log.old_value !== null || log.new_value !== null) && (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {log.old_value !== null && (
-                                    <div className="p-3 rounded-xl bg-red-500/5 border border-red-500/10">
-                                        <p className="text-[10px] font-bold text-red-500/50 uppercase tracing-widest mb-1">Before</p>
-                                        <code className="text-xs text-red-400 font-mono break-all">{log.old_value || 'Empty'}</code>
-                                    </div>
-                                )}
-                                {log.new_value !== null && (
-                                    <div className="p-3 rounded-xl bg-green-500/5 border border-green-500/10">
-                                        <p className="text-[10px] font-bold text-green-500/50 uppercase tracing-widest mb-1">After</p>
-                                        <code className="text-xs text-green-400 font-mono break-all">{log.new_value || 'Empty'}</code>
-                                    </div>
-                                )}
-                            </div>
-                        )}
+
+                        <div className="flex items-center gap-2 text-xs text-gray-500 font-medium">
+                            <User size={12} className="text-indigo-500/50" />
+                            <span>Actor: {log.user_id.substring(0, 8)}...</span>
+                        </div>
                     </div>
                 </div>
             ))}

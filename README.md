@@ -19,7 +19,7 @@
 
 ## 🛠️ Tech Stack
 
-- **Framework**: [Next.js 15](https://nextjs.org/) (App Router)
+- **Framework**: [Next.js 16](https://nextjs.org/) (App Router)
 - **Database**: [PostgreSQL](https://www.postgresql.org/)
 - **ORM**: [Drizzle ORM](https://orm.drizzle.team/)
 - **Auth**: [Better-Auth](https://www.better-auth.com/)
@@ -40,7 +40,7 @@ pnpm install
 Create a `.env` file in the root directory:
 ```env
 DATABASE_URL=postgres://user:pass@localhost:5432/envyx
-ENCRYPTION_KEY=your_32_character_hex_key
+ENV_ENCRYPTION_KEY=your_32_character_hex_key
 BETTER_AUTH_SECRET=your_auth_secret
 BETTER_AUTH_URL=http://localhost:3000
 ```

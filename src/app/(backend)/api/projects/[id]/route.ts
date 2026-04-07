@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { projects } from '@/db/schema';
 import { and, eq, isNull } from 'drizzle-orm';
+import { projectUpdateSchema, validationErrorResponse } from '@/db/schema';
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
     const session = await auth.api.getSession({ headers: req.headers });
@@ -27,10 +28,18 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const { id } = await params;
 
+    const body = await req.json().catch(() => null);
+    const parsed = projectUpdateSchema.safeParse(body);
+    if (!parsed.success) {
+        return NextResponse.json(validationErrorResponse(parsed.error), { status: 400 });
+    }
+    const { name, description, environment } = parsed.data;
+
     try {
-        const { name, description, environment } = await req.json();
-        const [updatedProject] = await db.update(projects).set({ name, description, environment, updated_at: new Date() })
-            .where(and(eq(projects.id, id), eq(projects.user_id, session.user.id), isNull(projects.deleted_at))).returning();
+        const [updatedProject] = await db.update(projects)
+            .set({ name, description, environment, updated_at: new Date() })
+            .where(and(eq(projects.id, id), eq(projects.user_id, session.user.id), isNull(projects.deleted_at)))
+            .returning();
         if (!updatedProject) return NextResponse.json({ error: 'Not found' }, { status: 404 });
         return NextResponse.json(updatedProject);
     } catch (e: unknown) {
