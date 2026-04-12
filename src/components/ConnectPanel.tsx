@@ -11,7 +11,7 @@ export default function ConnectPanel({ projectId }: { projectId: string }) {
     const handleCopy = (text: string, id: string) => {
         navigator.clipboard.writeText(text);
         setCopied(id);
-        showToast('Snippet copied to clipboard', 'success');
+        showToast('Snippet copied', 'success');
         setTimeout(() => setCopied(null), 2000);
     };
 
@@ -26,14 +26,14 @@ export default function ConnectPanel({ projectId }: { projectId: string }) {
 const data = await res.json();`;
 
     return (
-        <div className="space-y-8 py-4">
+        <div className="space-y-8 py-2">
             {/* Warning Banner */}
-            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex gap-4">
-                <ShieldAlert className="text-amber-500 shrink-0" size={24} />
-                <div>
-                    <h4 className="text-amber-500 font-bold text-sm tracking-tight">Security Best Practice</h4>
-                    <p className="text-amber-500/80 text-xs leading-relaxed mt-1 font-medium">
-                        Never fetch environment variables directly from the browser. Always perform these requests from a secure backend server or during your build process to keep your Master Key safe.
+            <div className="p-4 rounded-xl bg-white/[0.02] border border-[var(--ray-yellow)]/20 flex gap-4">
+                <ShieldAlert className="text-[var(--ray-yellow)] shrink-0" size={20} />
+                <div className="space-y-1">
+                    <h4 className="text-[var(--ray-yellow)] font-bold text-xs uppercase tracking-wider">Security First</h4>
+                    <p className="text-[#6a6b6c] text-[13px] leading-relaxed font-medium">
+                        Never fetch secrets client-side. Always route through a secure backend or build process to maintain zero-visibility for end-users.
                     </p>
                 </div>
             </div>
@@ -41,53 +41,53 @@ const data = await res.json();`;
             {/* Snippets */}
             <div className="space-y-6">
                 <section className="space-y-3">
-                    <div className="flex items-center gap-2 text-gray-400">
-                        <Terminal size={16} />
-                        <h3 className="text-xs font-bold uppercase tracking-widest">cURL / CLI</h3>
+                    <div className="flex items-center gap-2 text-[#6a6b6c]">
+                        <Terminal size={14} />
+                        <h3 className="text-[10px] font-bold uppercase tracking-widest">cURL / CLI</h3>
                     </div>
                     <div className="relative group">
-                        <pre className="p-6 rounded-2xl bg-black/40 border border-white/5 font-mono text-xs text-indigo-300 overflow-x-auto leading-relaxed">
+                        <pre className="p-5 rounded-xl bg-[#07080a] border border-white/5 font-mono text-[13px] text-[var(--ray-blue)] overflow-x-auto leading-relaxed shadow-inner">
                             {curlSnippet}
                         </pre>
                         <button 
                             onClick={() => handleCopy(curlSnippet, 'curl')}
-                            className="absolute right-4 top-4 p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-400 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                            className="absolute right-3 top-3 p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 text-[#6a6b6c] hover:text-[#f9f9f9] transition-all opacity-0 group-hover:opacity-100"
                         >
-                            {copied === 'curl' ? <Check size={16} /> : <Copy size={16} />}
+                            {copied === 'curl' ? <Check size={14} /> : <Copy size={14} />}
                         </button>
                     </div>
                 </section>
 
                 <section className="space-y-3">
-                    <div className="flex items-center gap-2 text-gray-400">
-                        <Code size={16} />
-                        <h3 className="text-xs font-bold uppercase tracking-widest">Node.js Fetch</h3>
+                    <div className="flex items-center gap-2 text-[#6a6b6c]">
+                        <Code size={14} />
+                        <h3 className="text-[10px] font-bold uppercase tracking-widest">Node.js Fetch</h3>
                     </div>
                     <div className="relative group">
-                        <pre className="p-6 rounded-2xl bg-black/40 border border-white/5 font-mono text-xs text-indigo-300 overflow-x-auto leading-relaxed">
+                        <pre className="p-5 rounded-xl bg-[#07080a] border border-white/5 font-mono text-[13px] text-[var(--ray-blue)] overflow-x-auto leading-relaxed shadow-inner">
                             {fetchSnippet}
                         </pre>
                         <button 
                             onClick={() => handleCopy(fetchSnippet, 'fetch')}
-                            className="absolute right-4 top-4 p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-400 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                            className="absolute right-3 top-3 p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 text-[#6a6b6c] hover:text-[#f9f9f9] transition-all opacity-0 group-hover:opacity-100"
                         >
-                            {copied === 'fetch' ? <Check size={16} /> : <Copy size={16} />}
+                            {copied === 'fetch' ? <Check size={14} /> : <Copy size={14} />}
                         </button>
                     </div>
                 </section>
             </div>
 
             {/* Integration Guides */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-12">
-                <div className="p-5 rounded-2xl bg-white/5 border border-white/5 hover:border-indigo-500/20 transition-all cursor-pointer group">
-                    <Globe className="text-indigo-400 mb-3" size={24} />
-                    <h4 className="text-white font-bold text-sm">Vercel Integration</h4>
-                    <p className="text-gray-500 text-xs mt-1 font-medium">Sync your Envyx variables with Vercel secrets automatically.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-white/5">
+                <div className="p-5 rounded-xl bg-white/[0.02] border border-white/5 hover:border-[var(--ray-blue)]/30 hover:bg-white/[0.04] transition-all cursor-pointer group">
+                    <Globe className="text-[var(--ray-blue)] mb-3 opacity-80" size={20} />
+                    <h4 className="text-[#f9f9f9] font-medium text-sm">Vercel Integration</h4>
+                    <p className="text-[#6a6b6c] text-[12px] mt-1 font-medium">Auto-sync secrets to Vercel production environments.</p>
                 </div>
-                <div className="p-5 rounded-2xl bg-white/5 border border-white/5 hover:border-indigo-500/20 transition-all cursor-pointer group text-gray-600 grayscale opacity-50">
-                    <Terminal className="mb-3" size={24} />
-                    <h4 className="font-bold text-sm">Github Actions</h4>
-                    <p className="text-xs mt-1 font-medium">Coming soon: Automated secrets injection for CI/CD.</p>
+                <div className="p-5 rounded-xl bg-white/[0.02] border border-white/5 transition-all text-[#6a6b6c]/40 cursor-not-allowed">
+                    <Code size={20} className="mb-3" />
+                    <h4 className="font-medium text-sm">GitHub Actions</h4>
+                    <p className="text-[12px] mt-1 font-medium">Coming soon: CLI-less secrets injection for pipelines.</p>
                 </div>
             </div>
         </div>

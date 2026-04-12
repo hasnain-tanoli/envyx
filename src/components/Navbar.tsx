@@ -1,9 +1,9 @@
 'use client';
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useSession, signOut } from '@/lib/auth-client';
-import { LayoutDashboard, LogOut, User as UserIcon } from 'lucide-react';
+import { LogOut, User as UserIcon } from 'lucide-react';
 
 export default function Navbar() {
     const path = usePathname();
@@ -18,50 +18,50 @@ export default function Navbar() {
     if (path === '/login' || path === '/register') return null;
 
     return (
-        <nav className="glass sticky top-0 z-50 px-6 py-4 flex justify-between items-center backdrop-blur-md shadow-sm">
-            <Link href="/" className="hover:opacity-80 transition-opacity">
-                <Image
-                    src="/envyx-logo-text-dark.svg"
-                    alt="Envyx Logo"
-                    width={120}
+        <nav className="sticky top-0 z-50 px-6 py-4 flex justify-between items-center bg-[#07080a]/80 backdrop-blur-md border-b border-white/5">
+            <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                <Image 
+                    src="/envyx-logo-text-dark.svg" 
+                    alt="Envyx" 
+                    width={140} 
                     height={40}
-                    className="h-14 w-auto"
+                    className="h-8 w-auto"
                 />
             </Link>
 
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-8">
                 {session ? (
                     <>
-                        <Link
-                            href="/projects"
-                            className={`flex items-center gap-2 text-sm font-medium transition-colors hover:text-indigo-400 ${path.startsWith('/projects') ? 'text-indigo-500' : 'text-gray-400'}`}
-                        >
-                            <LayoutDashboard size={18} />
-                            Projects
-                        </Link>
+                        <div className="hidden md:flex items-center gap-6">
+                            <Link
+                                href="/projects"
+                                className={`text-sm font-medium transition-colors hover:text-white ${path.startsWith('/projects') ? 'text-white' : 'text-[#9c9c9d]'}`}
+                            >
+                                Projects
+                            </Link>
 
-                        <Link
-                            href="/teams"
-                            className={`flex items-center gap-2 text-sm font-medium transition-colors hover:text-indigo-400 ${path.startsWith('/teams') ? 'text-indigo-500' : 'text-gray-400'}`}
-                        >
-                            <UserIcon size={18} />
-                            Teams
-                        </Link>
+                            <Link
+                                href="/teams"
+                                className={`text-sm font-medium transition-colors hover:text-white ${path.startsWith('/teams') ? 'text-white' : 'text-[#9c9c9d]'}`}
+                            >
+                                Teams
+                            </Link>
+                        </div>
 
                         <div className="flex items-center gap-4 pl-6 border-l border-white/10">
                             <Link
                                 href="/profile"
-                                className="flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-indigo-400 group transition-all"
+                                className="flex items-center gap-3 text-sm font-medium text-[#f9f9f9] hover:opacity-80 transition-opacity"
                             >
-                                <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30 group-hover:border-indigo-400 group-hover:scale-110 transition-all">
-                                    <UserIcon size={16} className="text-indigo-400" />
+                                <div className="w-8 h-8 rounded-full bg-[#1b1c1e] flex items-center justify-center border border-white/10">
+                                    <UserIcon size={14} className="text-[#9c9c9d]" />
                                 </div>
-                                <span className="hidden sm:inline group-hover:translate-x-1 transition-transform">{session.user.name}</span>
+                                <span className="hidden sm:inline">{session.user.name}</span>
                             </Link>
 
                             <button
                                 onClick={handleSignOut}
-                                className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all"
+                                className="p-2 text-[#6a6b6c] hover:text-[#FF6363] transition-colors"
                                 title="Sign Out"
                             >
                                 <LogOut size={18} />
@@ -69,16 +69,16 @@ export default function Navbar() {
                         </div>
                     </>
                 ) : (
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-6">
                         <Link
                             href="/login"
-                            className={`text-sm font-medium transition-colors hover:text-indigo-400 ${path === '/login' ? 'text-indigo-500' : 'text-gray-400'}`}
+                            className="text-sm font-medium text-[#9c9c9d] hover:text-white transition-colors"
                         >
-                            Login
+                            Log in
                         </Link>
                         <Link
                             href="/register"
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all shadow-lg shadow-indigo-600/20"
+                            className="pill-button pill-button-primary text-sm"
                         >
                             Get Started
                         </Link>

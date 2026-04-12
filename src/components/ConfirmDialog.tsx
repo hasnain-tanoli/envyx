@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { AlertTriangle, X } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 
 interface ConfirmDialogProps {
     isOpen: boolean;
@@ -26,10 +26,9 @@ export default function ConfirmDialog({
 }: ConfirmDialogProps) {
     const confirmBtnRef = useRef<HTMLButtonElement>(null);
 
-    // Focus the cancel button when opened (safer default)
+    // Focus the confirm button when opened
     useEffect(() => {
         if (isOpen) {
-            // Small delay to let animation settle
             const t = setTimeout(() => confirmBtnRef.current?.focus(), 50);
             return () => clearTimeout(t);
         }
@@ -48,72 +47,54 @@ export default function ConfirmDialog({
     if (!isOpen) return null;
 
     const isDanger = variant === 'danger';
-
-    const accentColor = isDanger
-        ? { ring: 'ring-red-500/30', bg: 'bg-red-500/10', icon: 'text-red-400', btn: 'bg-red-600 hover:bg-red-700 shadow-red-600/20', glow: 'shadow-red-500/10' }
-        : { ring: 'ring-amber-500/30', bg: 'bg-amber-500/10', icon: 'text-amber-400', btn: 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/20', glow: 'shadow-amber-500/10' };
+    const accentColor = isDanger ? 'text-[#FF6363]' : 'text-[var(--ray-yellow)]';
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-hidden">
             {/* Backdrop */}
             <div
-                className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
+                className="absolute inset-0 bg-[#07080a]/80 backdrop-blur-sm animate-in fade-in duration-200"
                 onClick={onCancel}
             />
 
             {/* Dialog Box */}
             <div
-                className={`relative w-full max-w-sm rounded-3xl border border-white/10 bg-[#0f1117] shadow-2xl ${accentColor.glow} animate-in zoom-in-95 fade-in duration-200`}
+                className="relative ray-card w-full max-w-[360px] p-6 bg-[#101111] shadow-2xl animate-in zoom-in-95 fade-in duration-200 overflow-hidden"
                 role="alertdialog"
                 aria-modal="true"
-                aria-labelledby="confirm-title"
-                aria-describedby="confirm-message"
             >
-                {/* Close X */}
-                <button
-                    onClick={onCancel}
-                    className="absolute top-4 right-4 p-1.5 rounded-xl text-gray-500 hover:text-white hover:bg-white/10 transition-all"
-                    aria-label="Cancel"
-                >
-                    <X size={18} />
-                </button>
-
-                <div className="p-8">
+                <div className="flex flex-col items-center text-center space-y-4">
                     {/* Icon */}
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 ${accentColor.bg}`}>
-                        <AlertTriangle className={accentColor.icon} size={28} />
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-white/5 border border-white/5 ${accentColor}`}>
+                        <AlertTriangle size={24} />
                     </div>
 
-                    {/* Title */}
-                    <h2
-                        id="confirm-title"
-                        className="text-xl font-black text-white tracking-tight mb-2"
-                    >
-                        {title}
-                    </h2>
-
-                    {/* Message */}
-                    <p
-                        id="confirm-message"
-                        className="text-gray-400 text-sm leading-relaxed font-medium"
-                    >
-                        {message}
-                    </p>
+                    {/* Content */}
+                    <div className="space-y-2">
+                        <h2 className="text-xl font-medium tracking-tight text-[#f9f9f9]">
+                            {title}
+                        </h2>
+                        <p className="text-[#6a6b6c] text-sm leading-relaxed font-medium">
+                            {message}
+                        </p>
+                    </div>
 
                     {/* Actions */}
-                    <div className="flex gap-3 mt-8">
-                        <button
-                            onClick={onCancel}
-                            className="flex-1 py-3 rounded-2xl font-bold text-sm text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/5 transition-all"
-                        >
-                            {cancelLabel}
-                        </button>
+                    <div className="flex flex-col w-full gap-2 mt-2">
                         <button
                             ref={confirmBtnRef}
                             onClick={onConfirm}
-                            className={`flex-1 py-3 rounded-2xl font-bold text-sm text-white shadow-xl transition-all active:scale-95 ${accentColor.btn}`}
+                            className={`w-full py-2.5 rounded-lg font-bold text-xs uppercase tracking-widest text-[#f9f9f9] transition-all border border-white/10 ${
+                                isDanger ? 'bg-[#FF6363]/80 hover:bg-[#FF6363]' : 'bg-[var(--ray-blue)]/80 hover:bg-[var(--ray-blue)]'
+                            }`}
                         >
                             {confirmLabel}
+                        </button>
+                        <button
+                            onClick={onCancel}
+                            className="w-full py-2.5 rounded-lg font-bold text-xs uppercase tracking-widest text-[#6a6b6c] hover:text-[#f9f9f9] transition-colors"
+                        >
+                            {cancelLabel}
                         </button>
                     </div>
                 </div>

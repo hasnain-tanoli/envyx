@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { projects, teamMembers } from '@/db/schema';
-import { and, eq, isNull, or, sql } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import { projectCreateSchema, validationErrorResponse } from '@/db/schema';
 
 export async function GET(req: Request) {

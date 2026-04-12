@@ -3,8 +3,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signUp } from '@/lib/auth-client';
 import Link from 'next/link';
+import Image from 'next/image';
 import { 
-    Shield, 
     User, 
     Mail, 
     Lock, 
@@ -40,42 +40,46 @@ export default function Page() {
     }
 
     return (
-        <div className="min-h-screen relative isolate flex items-center justify-center p-6 overflow-hidden">
-            {/* Background Decorative Elements */}
-            <div className="absolute inset-0 -z-10 bg-[#0a0a0c]">
-                <div className="absolute left-[50%] top-[30%] h-[600px] w-[600px] -translate-x-[50%] rounded-full bg-indigo-600/10 blur-[120px]" />
-                <div className="absolute left-0 bottom-0 h-[400px] w-[400px] rounded-full bg-purple-600/5 blur-[100px]" />
+        <div className="min-h-screen relative isolate flex flex-col items-center justify-center p-6 bg-[#07080a]">
+            {/* Minimal Grid Background */}
+            <div className="absolute inset-0 -z-10 pointer-events-none opacity-[0.02]">
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff_1px,transparent_1px),linear-gradient(to_bottom,#ffffff_1px,transparent_1px)] bg-[size:64px_64px]" />
             </div>
 
-            <div className="w-full max-w-md">
+            <div className="w-full max-w-[400px] animate-in fade-in slide-in-from-bottom-4 duration-1000">
                 {/* Branding */}
                 <div className="text-center mb-10">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-600/10 text-indigo-500 mb-6 border border-indigo-500/20 shadow-inner shadow-white/5">
-                        <Shield size={32} />
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[#101111] mb-6 border border-white/5 shadow-inner overflow-hidden">
+                        <Image 
+                            src="/envyx-logo-dark.svg" 
+                            alt="Envyx" 
+                            width={36} 
+                            height={36} 
+                        />
                     </div>
-                    <h1 className="text-4xl font-black text-white tracking-tight mb-2">Create Account</h1>
-                    <p className="text-gray-500 font-medium">Start securing your project secrets today.</p>
+                    <h1 className="text-3xl font-medium text-[#f9f9f9] tracking-tight mb-2">Create Account</h1>
+                    <p className="text-[#6a6b6c] text-sm font-medium">Start securing your project secrets today.</p>
                 </div>
 
                 {/* Register Card */}
-                <div className="glass rounded-[2.5rem] p-8 sm:p-10 border-white/5 shadow-2xl">
+                <div className="ray-card p-8 sm:p-10 bg-[#101111] border-white/5 shadow-2xl">
                     {error && (
-                        <div className="mb-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-start gap-3 animate-shake">
-                            <AlertCircle className="text-red-400 shrink-0" size={18} />
-                            <p className="text-red-400 text-sm font-medium leading-tight">{error}</p>
+                        <div className="mb-8 p-3 rounded-lg bg-[#FF6363]/10 border border-[#FF6363]/20 flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
+                            <AlertCircle className="text-[#FF6363] shrink-0 mt-0.5" size={14} />
+                            <p className="text-[#FF6363] text-[12px] font-medium leading-tight">{error}</p>
                         </div>
                     )}
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="space-y-2">
-                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Full Name</label>
+                            <label className="block text-[10px] font-bold text-[#6a6b6c] uppercase tracking-[0.2em] ml-1">Full Name</label>
                             <div className="relative group">
-                                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-indigo-400 transition-colors" size={18} />
+                                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6a6b6c] group-focus-within:text-[var(--ray-blue)] transition-colors" size={16} />
                                 <input 
                                     type="text" 
                                     required
                                     placeholder="John Doe"
-                                    className="w-full glass bg-white/5 border-white/10 rounded-2xl pl-12 pr-5 py-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all font-medium placeholder:text-gray-700"
+                                    className="w-full bg-[#07080a] border border-white/5 rounded-lg pl-12 pr-5 py-3 text-[#f9f9f9] text-sm focus:outline-none focus:border-[var(--ray-blue)]/50 transition-all font-medium placeholder:text-[#6a6b6c]/40"
                                     value={name}
                                     onChange={e => setName(e.target.value)}
                                 />
@@ -83,14 +87,14 @@ export default function Page() {
                         </div>
 
                         <div className="space-y-2">
-                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Email Address</label>
+                            <label className="block text-[10px] font-bold text-[#6a6b6c] uppercase tracking-[0.2em] ml-1">Email</label>
                             <div className="relative group">
-                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-indigo-400 transition-colors" size={18} />
+                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6a6b6c] group-focus-within:text-[var(--ray-blue)] transition-colors" size={16} />
                                 <input 
                                     type="email" 
                                     required
                                     placeholder="name@company.com"
-                                    className="w-full glass bg-white/5 border-white/10 rounded-2xl pl-12 pr-5 py-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all font-medium placeholder:text-gray-700"
+                                    className="w-full bg-[#07080a] border border-white/5 rounded-lg pl-12 pr-5 py-3 text-[#f9f9f9] text-sm focus:outline-none focus:border-[var(--ray-blue)]/50 transition-all font-medium placeholder:text-[#6a6b6c]/40"
                                     value={email}
                                     onChange={e => setEmail(e.target.value)}
                                 />
@@ -98,14 +102,14 @@ export default function Page() {
                         </div>
 
                         <div className="space-y-2">
-                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Password</label>
+                            <label className="block text-[10px] font-bold text-[#6a6b6c] uppercase tracking-[0.2em] ml-1">Password</label>
                             <div className="relative group">
-                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 group-focus-within:text-indigo-400 transition-colors" size={18} />
+                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6a6b6c] group-focus-within:text-[var(--ray-blue)] transition-colors" size={16} />
                                 <input 
                                     type="password" 
                                     required
                                     placeholder="••••••••••••"
-                                    className="w-full glass bg-white/5 border-white/10 rounded-2xl pl-12 pr-5 py-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all font-medium placeholder:text-gray-700"
+                                    className="w-full bg-[#07080a] border border-white/5 rounded-lg pl-12 pr-5 py-3 text-[#f9f9f9] text-sm focus:outline-none focus:border-[var(--ray-blue)]/50 transition-all font-medium placeholder:text-[#6a6b6c]/40"
                                     value={password}
                                     onChange={e => setPassword(e.target.value)}
                                 />
@@ -115,37 +119,36 @@ export default function Page() {
                         <button 
                             type="submit" 
                             disabled={loading}
-                            className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white py-4 rounded-2xl font-bold text-lg shadow-xl shadow-indigo-600/20 active:scale-95 transition-all flex items-center justify-center gap-2 group"
+                            className="pill-button pill-button-primary w-full py-3.5 text-sm"
                         >
                             {loading ? (
-                                <Loader2 className="animate-spin" size={20} />
+                                <Loader2 className="animate-spin" size={16} />
                             ) : (
                                 <>
-                                    Create Vault Account
-                                    <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                                    <span>Create Account</span>
+                                    <ArrowRight size={16} className="ml-2 group-hover:translate-x-1 transition-transform" />
                                 </>
                             )}
                         </button>
                     </form>
 
-                    <div className="mt-8 pt-8 border-t border-white/5 text-center">
-                        <p className="text-gray-500 text-sm font-medium">
+                    <div className="mt-10 pt-8 border-t border-white/5 text-center">
+                        <p className="text-[#6a6b6c] text-[13px] font-medium">
                             Already have an account?{' '}
-                            <Link href="/login" className="text-indigo-400 hover:text-indigo-300 transition-colors font-bold">
-                                Sign In &rarr;
+                            <Link href="/login" className="text-[var(--ray-blue)] hover:opacity-80 transition-opacity font-bold">
+                                Sign In
                             </Link>
                         </p>
                     </div>
                 </div>
                 
                 {/* Footer Links */}
-                <div className="mt-8 flex justify-center gap-6">
-                    <Link href="/" className="text-gray-600 hover:text-gray-400 text-xs font-bold uppercase tracking-widest transition-colors">
+                <div className="mt-12 flex justify-center gap-8">
+                    <Link href="/" className="text-[#6a6b6c] hover:text-[#f9f9f9] text-[10px] font-bold uppercase tracking-[0.2em] transition-colors">
                         Home
                     </Link>
-                    <span className="text-gray-800">•</span>
-                    <a href="#" className="text-gray-600 hover:text-gray-400 text-xs font-bold uppercase tracking-widest transition-colors">
-                        Privacy Policy
+                    <a href="#" className="text-[#6a6b6c] hover:text-[#f9f9f9] text-[10px] font-bold uppercase tracking-[0.2em] transition-colors">
+                        Privacy
                     </a>
                 </div>
             </div>

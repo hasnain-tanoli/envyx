@@ -1,61 +1,120 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --glass: rgba(255, 255, 255, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.2);
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('https://rsms.me/inter/font-files/Inter-roman.var.woff2?v=3.19') format('woff2');
 }
 
 :root {
-  --color-indigo-500: #6366f1;
-  --color-indigo-600: #4f46e5;
-  --color-indigo-700: #4338ca;
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-glass: var(--glass);
-  --color-glass-border: var(--glass-border);
-  --font-sans: "Inter", var(--font-geist-sans), sans-serif;
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #050505;
-    --foreground: #f0f0f0;
-    --glass: rgba(15, 15, 15, 0.6);
-    --glass-border: rgba(255, 255, 255, 0.1);
-  }
+  /* Primary Palette */
+  --background: #07080a;
+  --foreground: #f9f9f9;
+  
+  /* Raycast Accents */
+  --ray-red: #FF6363;
+  --ray-blue: hsl(202, 100%, 67%);
+  --ray-green: hsl(151, 59%, 59%);
+  --ray-yellow: hsl(43, 100%, 60%);
+  
+  /* Surfaces */
+  --surface-100: #101111;
+  --surface-card: #1b1c1e;
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-standard: hsl(195, 5%, 15%);
+  
+  /* Text */
+  --text-secondary: #9c9c9d;
+  --text-dim: #6a6b6c;
+  
+  /* Shadows - macOS-native multi-layer system */
+  --shadow-ring: 0 0 0 1px rgb(27, 28, 30), inset 0 0 0 1px rgb(7, 8, 10);
+  --shadow-button-primary: inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+  --shadow-key: 0 1.5px 0.5px 2.5px rgba(0, 0, 0, 0.4), inset 0 -1.5px 0 0 rgba(255, 255, 255, 0.1);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans);
-  min-height: 100vh;
+  font-family: "Inter", system-ui, sans-serif;
+  font-feature-settings: "calt", "kern", "liga", "ss03";
+  letter-spacing: 0.2px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* HIGH PERFORMANCE BACKGROUND LAYER */
-.fixed-bg {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  background-image: radial-gradient(circle at 50% 0%, #1a1a1a 0%, transparent 50%),
-    radial-gradient(circle at 0% 100%, #111 0%, transparent 50%);
-  pointer-events: none;
-  background-color: var(--background);
+/* SIGNATURE RAYCAST CARD */
+.ray-card {
+  background: var(--surface-100);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  box-shadow: var(--shadow-ring);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* PREMIUM GLASS (Use for Modals / Headers) */
-.glass {
-  background: var(--glass);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--glass-border);
+.ray-card:hover {
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
-/* HIGH-PERFORMANCE GLASS (Use for List Items / Cards) */
-.glass-item {
-  background: var(--glass);
-  border: 1px solid var(--glass-border);
+/* PILL BUTTON */
+.pill-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  padding: 10px 24px;
+  font-weight: 600;
+  transition: opacity 0.2s ease;
+  box-shadow: var(--shadow-button-primary);
+}
+
+.pill-button:hover {
+  opacity: 0.6;
+}
+
+.pill-button-primary {
+  background: hsla(0, 0%, 100%, 0.815);
+  color: #18191a;
+}
+
+.pill-button-secondary {
+  background: transparent;
+  color: #f9f9f9;
+  border: 1px solid var(--border-subtle);
+}
+
+/* KEY CAP */
+.key-cap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 4px;
+  background: linear-gradient(to bottom, #121212, #0d0d0d);
+  border-radius: 4px;
+  box-shadow: var(--shadow-key);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* CUSTOM SCROLLBAR - Minimal */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2f3031;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #434345;
 }

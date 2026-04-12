@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAuthContext } from '@/lib/api-auth';
 import { db } from '@/lib/db';
-import { teams, teamMembers, user, teamMemberSchema, validationErrorResponse } from '@/db/schema';
+import { teamMembers, user } from '@/db/schema';
 import { and, eq } from 'drizzle-orm';
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -65,7 +65,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         });
 
         return NextResponse.json({ success: true });
-    } catch (e: unknown) {
+    } catch {
         return NextResponse.json({ error: 'User already in team or internal error' }, { status: 409 });
     }
 }

@@ -4,7 +4,7 @@ import { api_tokens } from '@/db/schema';
 import { and, eq, sql } from 'drizzle-orm';
 import { hashToken } from './tokens';
 import { projects, teamMembers } from '@/db/schema';
-import { isNull, or } from 'drizzle-orm';
+import { isNull } from 'drizzle-orm';
 
 export interface AuthContext {
     user: {
@@ -18,7 +18,7 @@ export interface AuthContext {
 }
 
 export type ProjectAccess = {
-    project: any; // Type it better if possible, using 'any' for now to avoid complexity with Drizzle types in this thought
+    project: typeof projects.$inferSelect;
     role: 'owner' | 'admin' | 'member' | 'viewer';
 };
 
@@ -50,7 +50,7 @@ export async function getProjectAccess(projectId: string, context: AuthContext):
         ));
 
         if (membership) {
-            return { project, role: membership.role as any };
+            return { project, role: membership.role as 'owner' | 'admin' | 'member' | 'viewer' };
         }
     }
 

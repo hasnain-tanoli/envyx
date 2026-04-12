@@ -1,7 +1,7 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-    // Other configs if needed
+    transpilePackages: ["better-auth"],
 };
 
 export default nextConfig;

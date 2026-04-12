@@ -22,7 +22,7 @@ export async function GET(req: Request) {
         }
 
         return NextResponse.json(userData);
-    } catch (e) {
+    } catch {
         return NextResponse.json({ error: 'Failed to fetch profile' }, { status: 500 });
     }
 }

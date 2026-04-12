@@ -11,17 +11,10 @@ import {
     Shield, 
     ChevronRight, 
     Loader2, 
-    Building2,
-    Settings,
-    UserCircle2
+    Building2
 } from 'lucide-react';
 
-interface Team {
-    id: string;
-    name: string;
-    slug: string;
-    role: 'owner' | 'admin' | 'member' | 'viewer';
-}
+import { Team } from '@/types';
 
 export default function TeamsPage() {
     const { showToast } = useToast();
@@ -53,70 +46,73 @@ export default function TeamsPage() {
         setSubmitting(true);
         try {
             await createTeam(newTeam.name, newTeam.slug.toLowerCase());
-            showToast('Team created successfully', 'success');
+            showToast('Team created', 'success');
             setCreateModalOpen(false);
             setNewTeam({ name: '', slug: '' });
             fetchTeams();
-        } catch (error: any) {
-            showToast(error.message || 'Failed to create team', 'error');
+        } catch (error) {
+            showToast(error instanceof Error ? error.message : 'Creation failed', 'error');
         } finally {
             setSubmitting(false);
         }
     };
 
     const getRoleBadge = (role: string) => {
-        const colors: any = {
-            owner: 'bg-amber-400/10 text-amber-400 border-amber-400/20',
-            admin: 'bg-purple-400/10 text-purple-400 border-purple-400/20',
-            member: 'bg-indigo-400/10 text-indigo-400 border-indigo-400/20',
-            viewer: 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20',
+        const colors: Record<string, string> = {
+            owner: 'text-[var(--ray-yellow)] border-[var(--ray-yellow)]/20 bg-[var(--ray-yellow)]/5',
+            admin: 'text-purple-400 border-purple-400/20 bg-purple-400/5',
+            member: 'text-[var(--ray-blue)] border-[var(--ray-blue)]/20 bg-[var(--ray-blue)]/5',
+            viewer: 'text-[#6a6b6c] border-white/5 bg-[#1b1c1e]',
         };
         return (
-            <span className={`px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-bold border ${colors[role] || colors.member}`}>
+            <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-[0.1em] border ${colors[role] || colors.member}`}>
                 {role}
             </span>
         );
     };
 
     return (
-        <div className="max-w-6xl mx-auto px-6 py-12">
-            <div className="flex justify-between items-end mb-12">
+        <div className="max-w-6xl mx-auto px-6 py-12 animate-in fade-in duration-700">
+            <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12">
                 <div>
-                    <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-                        <Users className="text-indigo-400" size={32} />
-                        Teams
-                    </h1>
-                    <p className="text-gray-400 mt-2">Collaborate with your team on shared projects</p>
+                    <div className="flex items-center gap-2 text-[var(--ray-blue)] mb-3">
+                        <Users size={14} />
+                        <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Organization Control</span>
+                    </div>
+                    <h1 className="text-3xl font-medium text-[#f9f9f9] tracking-tight">Teams</h1>
+                    <p className="text-[#6a6b6c] text-[13px] font-medium mt-2 leading-tight">Collaborate securely across shared cryptographic vaults.</p>
                 </div>
+                
                 <button
                     onClick={() => setCreateModalOpen(true)}
-                    className="btn-primary flex items-center gap-2"
+                    className="pill-button pill-button-primary px-6 py-2.5 text-xs"
                 >
-                    <Plus size={18} />
-                    Create Team
+                    <Plus size={16} className="mr-2" />
+                    New Team
                 </button>
-            </div>
+            </header>
 
             {loading ? (
-                <div className="flex flex-col items-center justify-center py-24 space-y-4">
-                    <Loader2 className="animate-spin text-indigo-500" size={40} />
-                    <p className="text-gray-500 animate-pulse">Accessing organization vault...</p>
+                <div className="flex flex-col items-center justify-center py-32 gap-6">
+                    <Loader2 className="text-[var(--ray-blue)] animate-spin" size={32} />
+                    <p className="text-[#6a6b6c] text-[11px] font-bold uppercase tracking-[0.2em]">Synchronizing Organizations...</p>
                 </div>
             ) : teams.length === 0 ? (
-                <div className="glass p-12 text-center rounded-2xl flex flex-col items-center border-dashed border-2 border-white/5">
-                    <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-6">
-                        <Building2 className="text-gray-500" size={32} />
+                <div className="ray-card p-24 text-center flex flex-col items-center gap-8 border-dashed border-white/5">
+                    <div className="p-4 rounded-xl bg-[#1b1c1e] text-[#6a6b6c] border border-white/5 shadow-inner">
+                        <Building2 size={32} />
                     </div>
-                    <h3 className="text-xl font-medium text-white mb-2">No teams found</h3>
-                    <p className="text-gray-400 max-w-sm mb-8 italic">
-                        Create a team to share secrets across your organization securely.
-                    </p>
+                    <div>
+                        <h3 className="text-xl font-medium text-[#f9f9f9] mb-2">No teams found</h3>
+                        <p className="text-[#6a6b6c] text-[13px] font-medium max-w-sm mx-auto leading-relaxed">
+                            Create an organization to start sharing and managing projects with team members securely.
+                        </p>
+                    </div>
                     <button
                         onClick={() => setCreateModalOpen(true)}
-                        className="bg-white/5 hover:bg-white/10 text-white px-6 py-2 rounded-xl transition-all border border-white/10 flex items-center gap-2"
+                        className="text-[var(--ray-blue)] text-xs font-bold uppercase tracking-widest hover:opacity-80 transition-opacity"
                     >
-                        <Plus size={18} />
-                        Get Started
+                        Initialize First Team &rarr;
                     </button>
                 </div>
             ) : (
@@ -125,26 +121,26 @@ export default function TeamsPage() {
                         <Link
                             key={team.id}
                             href={`/teams/${team.id}`}
-                            className="group relative glass p-6 rounded-2xl border border-white/5 hover:border-indigo-500/30 transition-all hover:bg-white/5 shadow-xl"
+                            className="ray-card p-6 group transition-all"
                         >
-                            <div className="flex justify-between items-start mb-4">
-                                <div className="w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                    <Shield className="text-indigo-400" size={24} />
+                            <div className="flex justify-between items-start mb-6">
+                                <div className="w-12 h-12 rounded-xl bg-[#1b1c1e] border border-white/5 flex items-center justify-center text-[var(--ray-blue)] shadow-inner">
+                                    <Shield size={22} />
                                 </div>
-                                {getRoleBadge(team.role)}
+                                {getRoleBadge(team.role || 'member')}
                             </div>
                             
-                            <h3 className="text-xl font-semibold text-white group-hover:text-indigo-400 transition-colors">
+                            <h3 className="text-lg font-medium text-[#f9f9f9] group-hover:text-[var(--ray-blue)] transition-colors tracking-tight">
                                 {team.name}
                             </h3>
-                            <p className="text-sm text-gray-500 font-mono mt-1">@{team.slug}</p>
+                            <p className="text-[11px] text-[#6a6b6c] font-medium mt-1 uppercase tracking-wider">@{team.slug}</p>
 
-                            <div className="mt-8 flex items-center justify-between text-gray-400 text-sm">
+                            <div className="mt-8 flex items-center justify-between text-[#6a6b6c] text-[10px] font-bold uppercase tracking-widest pt-6 border-t border-white/5">
                                 <div className="flex items-center gap-2">
-                                    <Users size={14} />
+                                    <Users size={12} />
                                     <span>Manage Members</span>
                                 </div>
-                                <ChevronRight size={18} className="transform group-hover:translate-x-1 transition-transform" />
+                                <ChevronRight size={14} className="transform group-hover:translate-x-1 transition-transform" />
                             </div>
                         </Link>
                     ))}
@@ -154,11 +150,18 @@ export default function TeamsPage() {
             <Modal
                 isOpen={createModalOpen}
                 onClose={() => setCreateModalOpen(false)}
-                title="Create New Team"
             >
+                <div className="mb-12 text-center px-4">
+                    <div className="w-12 h-12 bg-[#1b1c1e] rounded-xl flex items-center justify-center text-[var(--ray-blue)] mx-auto mb-6 border border-white/5 shadow-inner">
+                        <Building2 size={22} />
+                    </div>
+                    <h2 className="text-2xl font-medium text-[#f9f9f9] tracking-tight">Create Team</h2>
+                    <p className="text-[#6a6b6c] text-[13px] mt-2 font-medium leading-tight">Initialize a new secure organization keychain.</p>
+                </div>
+
                 <form onSubmit={handleCreateTeam} className="space-y-6">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">Team Name</label>
+                    <div className="space-y-2">
+                        <label className="block text-[10px] font-bold text-[#6a6b6c] uppercase tracking-[0.2em] ml-1">Team Name</label>
                         <input
                             required
                             type="text"
@@ -170,41 +173,33 @@ export default function TeamsPage() {
                                     slug: name.toLowerCase().replace(/[^a-z0-9]/g, '-') 
                                 });
                             }}
-                            placeholder="e.g. Engineering, Acme Corp"
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                            placeholder="e.g. Engineering Team"
+                            className="w-full bg-[#07080a] border border-white/5 rounded-lg px-4 py-3 text-[#f9f9f9] text-sm focus:outline-none focus:border-[var(--ray-blue)]/50 transition-all font-medium placeholder:text-[#6a6b6c]/40"
                         />
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2 underline underline-offset-4 decoration-indigo-500/30">Team Slug</label>
+                    <div className="space-y-2">
+                        <label className="block text-[10px] font-bold text-[#6a6b6c] uppercase tracking-[0.2em] ml-1">Unique Slug</label>
                         <div className="relative">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm">envyx.com/teams/</span>
                             <input
                                 required
                                 type="text"
                                 value={newTeam.slug}
                                 onChange={(e) => setNewTeam({ ...newTeam, slug: e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '-') })}
-                                className="w-full bg-white/5 border border-white/10 rounded-xl pl-32 pr-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all font-mono text-sm"
+                                className="w-full bg-[#07080a] border border-white/5 rounded-lg px-4 py-3 text-[#f9f9f9] text-sm focus:outline-none focus:border-[var(--ray-blue)]/50 transition-all font-medium placeholder:text-[#6a6b6c]/40"
                             />
                         </div>
-                        <p className="text-[10px] text-gray-500 mt-2 px-1 italic">Unique identifier for your team URL.</p>
+                        <p className="text-[10px] text-[#6a6b6c] mt-2 px-1 font-medium italic opacity-70">A global identifier for your team vault.</p>
                     </div>
 
-                    <div className="flex gap-3 pt-4">
-                        <button
-                            type="button"
-                            onClick={() => setCreateModalOpen(false)}
-                            className="flex-1 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white font-medium transition-all"
-                        >
-                            Cancel
-                        </button>
+                    <div className="pt-4">
                         <button
                             type="submit"
                             disabled={submitting}
-                            className="flex-1 px-4 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold transition-all shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2"
+                            className="pill-button pill-button-primary w-full py-3.5 text-xs"
                         >
                             {submitting ? (
                                 <>
-                                    <Loader2 className="animate-spin" size={20} />
+                                    <Loader2 className="animate-spin mr-2" size={16} />
                                     Creating...
                                 </>
                             ) : 'Initialize Team'}

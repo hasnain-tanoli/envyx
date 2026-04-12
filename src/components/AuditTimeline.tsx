@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Loader2, History, User, Activity, AlertCircle } from 'lucide-react';
+import { Loader2, History, User, AlertCircle } from 'lucide-react';
 
 interface AuditLog {
     id: string;
@@ -37,16 +37,16 @@ export default function AuditTimeline({ projectId }: { projectId: string }) {
     if (loading) {
         return (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
-                <Loader2 className="text-indigo-500 animate-spin" size={32} />
-                <p className="text-gray-500 font-medium">Loading history...</p>
+                <Loader2 className="text-[var(--ray-blue)] animate-spin" size={24} />
+                <p className="text-[#6a6b6c] text-sm font-medium">Fetching secure logs...</p>
             </div>
         );
     }
 
     if (error) {
         return (
-            <div className="flex flex-col items-center justify-center py-20 gap-4 text-red-400">
-                <AlertCircle size={32} />
+            <div className="flex flex-col items-center justify-center py-20 gap-4 text-[#FF6363]">
+                <AlertCircle size={24} />
                 <p className="font-medium text-sm">{error}</p>
             </div>
         );
@@ -54,57 +54,49 @@ export default function AuditTimeline({ projectId }: { projectId: string }) {
 
     if (logs.length === 0) {
         return (
-            <div className="text-center py-20">
-                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white/5 text-gray-600 mb-4">
-                    <History size={24} />
+            <div className="text-center py-20 px-4">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-white/5 text-[#6a6b6c] mb-4">
+                    <History size={20} />
                 </div>
-                <p className="text-gray-500 font-medium tracking-tight">No activity recorded yet.</p>
+                <p className="text-[#6a6b6c] text-sm font-medium tracking-tight">No activity logs found for this project.</p>
             </div>
         );
     }
 
     return (
-        <div className="space-y-8 py-4">
-            {logs.map((log, i) => (
-                <div key={log.id} className="relative flex gap-4">
-                    {/* Vertical line connector */}
-                    {i !== logs.length - 1 && (
-                        <div className="absolute left-[21px] top-10 bottom-[-32px] w-[2px] bg-white/5" />
-                    )}
-
-                    {/* Icon Circle */}
-                    <div className={`shrink-0 w-11 h-11 rounded-full flex items-center justify-center border transition-all ${
-                        log.action === 'create' ? 'bg-green-500/10 border-green-500/20 text-green-400' :
-                        log.action === 'delete' ? 'bg-red-500/10 border-red-500/20 text-red-400' :
-                        'bg-indigo-500/10 border-indigo-500/20 text-indigo-400'
-                    }`}>
-                        <Activity size={18} />
-                    </div>
+        <div className="space-y-0 py-2">
+            {logs.map((log) => (
+                <div key={log.id} className="relative group flex gap-5 p-4 border-l border-white/5 hover:bg-white/[0.02] transition-colors">
+                    {/* Status Pip */}
+                    <div className={`shrink-0 w-2.5 h-2.5 mt-1.5 rounded-full border-2 border-[#101111] ${
+                        log.action === 'create' ? 'bg-[var(--ray-green)] shadow-[0_0_8px_var(--ray-green)]' :
+                        log.action === 'delete' ? 'bg-[#FF6363] shadow-[0_0_8px_#FF6363]' :
+                        'bg-[var(--ray-blue)] shadow-[0_0_8px_var(--ray-blue)]'
+                    }`} />
 
                     {/* Content */}
-                    <div className="flex-1 pt-1">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2">
-                            <h4 className="text-white font-bold tracking-tight capitalize">
-                                {log.action}{' '}
-                                <span className="text-gray-500 font-medium lowercase">variable</span>
+                    <div className="flex-1 min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                            <h4 className="text-[#f9f9f9] text-sm font-medium tracking-tight">
+                                <span className="capitalize">{log.action}</span>
+                                <span className="text-[#6a6b6c] font-normal lowercase ml-1.5">affected variable</span>
                             </h4>
-                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-600 px-2 py-1 bg-white/5 rounded border border-white/5">
-                                {new Date(log.created_at).toLocaleString()}
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-[#6a6b6c]">
+                                {new Date(log.created_at).toLocaleString('en-US', { 
+                                    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+                                })}
                             </span>
                         </div>
 
-                        {/* Key name — safe metadata */}
-                        <div className="flex items-center gap-2 mb-2">
-                            <code className={`text-xs font-mono px-2 py-1 rounded-lg border ${
-                                log.action === 'create' ? 'bg-green-500/5 border-green-500/10 text-green-400' :
-                                log.action === 'delete' ? 'bg-red-500/5 border-red-500/10 text-red-400' :
-                                'bg-indigo-500/5 border-indigo-500/10 text-indigo-400'
-                            }`}>{log.key_name}</code>
-                        </div>
-
-                        <div className="flex items-center gap-2 text-xs text-gray-500 font-medium">
-                            <User size={12} className="text-indigo-500/50" />
-                            <span>Actor: {log.user_id.substring(0, 8)}...</span>
+                        {/* Variable Detail */}
+                        <div className="flex flex-wrap items-center gap-3">
+                            <span className="font-mono text-[11px] font-bold text-[#cecece] px-2 py-0.5 bg-white/5 rounded border border-white/5">
+                                {log.key_name}
+                            </span>
+                            <div className="flex items-center gap-1.5 text-[11px] text-[#6a6b6c]">
+                                <User size={10} className="text-[#6a6b6c]/50" />
+                                <span>Actor: {log.user_id.substring(0, 8)}</span>
+                            </div>
                         </div>
                     </div>
                 </div>

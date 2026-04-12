@@ -41,23 +41,26 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
 function ToastItem({ toast, onClose }: { toast: Toast, onClose: () => void }) {
     const icons = {
-        success: <CheckCircle className="text-green-400" size={18} />,
-        error: <AlertCircle className="text-red-400" size={18} />,
-        info: <Info className="text-indigo-400" size={18} />,
+        success: <CheckCircle className="text-[var(--ray-green)]" size={16} />,
+        error: <AlertCircle className="text-[#FF6363]" size={16} />,
+        info: <Info className="text-[var(--ray-blue)]" size={16} />,
     };
 
-    const colors = {
-        success: 'border-green-500/20 bg-green-500/10',
-        error: 'border-red-500/20 bg-red-500/10',
-        info: 'border-indigo-500/20 bg-indigo-500/10',
+    const borders = {
+        success: 'border-[var(--ray-green)]/20',
+        error: 'border-[#FF6363]/20',
+        info: 'border-[var(--ray-blue)]/20',
     };
 
     return (
-        <div className={`pointer-events-auto glass flex items-center gap-3 px-5 py-4 rounded-2xl border shadow-2xl ${colors[toast.type]}`}>
+        <div className={`pointer-events-auto ray-card flex items-center gap-3.5 px-5 py-3.5 bg-[#101111] border ${borders[toast.type]} shadow-2xl min-w-[320px] animate-in slide-in-from-right-10 duration-300`}>
             <div className="shrink-0">{icons[toast.type]}</div>
-            <p className="text-sm font-bold text-white pr-4">{toast.message}</p>
-            <button onClick={onClose} className="hover:bg-white/10 rounded-full p-1 transition-colors">
-                <X size={14} className="text-gray-500" />
+            <p className="text-sm font-medium text-[#f9f9f9] flex-1">{toast.message}</p>
+            <button 
+                onClick={onClose} 
+                className="p-1 text-[#6a6b6c] hover:text-[#f9f9f9] transition-colors hover:bg-white/5 rounded-md"
+            >
+                <X size={14} />
             </button>
         </div>
     );

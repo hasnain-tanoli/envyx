@@ -1,7 +1,7 @@
 'use client';
 import { memo } from 'react';
 import Link from 'next/link';
-import { Folder, ArrowRight, Key, Edit2, Trash2 } from 'lucide-react';
+import { Folder, ArrowRight, Key, Edit2, Trash2, Shield, Lock } from 'lucide-react';
 
 interface ProjectCardProps {
     id: string;
@@ -15,37 +15,30 @@ interface ProjectCardProps {
 }
 
 function ProjectCard({ id, name, description, env_count, environment, role, onEdit, onDelete }: ProjectCardProps) {
-    const envColors: Record<string, string> = {
-        production: 'bg-red-500/10 text-red-500 border-red-500/20',
-        staging: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
-        development: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
-    };
-    
-    const activeEnv = environment || 'development';
     const isViewer = role === 'viewer';
+    const activeEnv = environment || 'development';
 
     return (
         <Link 
             href={`/projects/${id}`} 
-            className="group glass-item p-6 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all flex flex-col gap-4"
+            className="group ray-card p-6 transition-all flex flex-col gap-5 hover:-translate-y-1"
         >
             <div className="flex justify-between items-start">
-                <div className="p-3 rounded-xl bg-indigo-500/10 text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white transition-colors">
-                    <Folder size={24} />
+                <div className="p-2.5 rounded-xl bg-[#1b1c1e] border border-white/5 text-[#FF6363] shadow-inner shadow-white/5 transition-colors group-hover:bg-[#FF6363] group-hover:text-white">
+                    <Folder size={20} />
                 </div>
                 <div className="flex items-center gap-2">
                     {!isViewer && (
-                        <>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button 
                                 onClick={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
                                     onEdit?.(id, name, description || '', environment || 'development');
                                 }}
-                                className="p-2 text-gray-500 hover:text-indigo-400 hover:bg-indigo-400/10 rounded-xl transition-all"
-                                title="Edit Project"
+                                className="p-1.5 text-[#6a6b6c] hover:text-[#f9f9f9] transition-colors"
                             >
-                                <Edit2 size={16} />
+                                <Edit2 size={14} />
                             </button>
                             <button 
                                 onClick={(e) => {
@@ -53,42 +46,48 @@ function ProjectCard({ id, name, description, env_count, environment, role, onEd
                                     e.stopPropagation();
                                     onDelete?.(id);
                                 }}
-                                className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded-xl transition-all"
-                                title="Delete Project"
+                                className="p-1.5 text-[#6a6b6c] hover:text-[#FF6363] transition-colors"
                             >
-                                <Trash2 size={16} />
+                                <Trash2 size={14} />
                             </button>
-                        </>
+                        </div>
                     )}
-                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-semibold text-gray-400 ml-2">
-                        <Key size={12} />
-                        {env_count || 0} Variables
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#1b1c1e] border border-white/5 text-[10px] font-bold text-[#9c9c9d] uppercase tracking-wider">
+                        <Lock size={10} className="text-[#6a6b6c]" />
+                        Vaulted
                     </div>
                 </div>
             </div>
 
-            <div className="flex gap-2">
-                {activeEnv && (
-                    <div className={`w-fit px-2 py-0.5 rounded-full border text-[10px] font-black uppercase tracking-widest ${envColors[activeEnv] || envColors.development}`}>
+            <div className="space-y-1.5">
+                <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-medium tracking-tight text-[#f9f9f9] group-hover:text-white transition-colors">{name}</h3>
+                    <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border border-white/5 ${
+                        activeEnv === 'production' ? 'bg-[#FF6363]/10 text-[#FF6363]' : 'bg-[#1b1c1e] text-[#9c9c9d]'
+                    }`}>
                         {activeEnv}
-                    </div>
-                )}
-                {role && (
-                    <div className="w-fit px-2 py-0.5 rounded-full border border-indigo-500/20 bg-indigo-500/5 text-indigo-400 text-[10px] font-black uppercase tracking-widest">
-                        {role}
-                    </div>
-                )}
-            </div>
-            
-            <div>
-                <h3 className="text-xl font-bold text-white group-hover:text-indigo-400 transition-colors uppercase tracking-tight">{name}</h3>
-                <p className="text-gray-400 text-sm mt-1 line-clamp-2">{description || 'No description provided.'}</p>
+                    </span>
+                </div>
+                <p className="text-sm text-[#6a6b6c] line-clamp-2 leading-relaxed min-h-[40px]">
+                    {description || 'No description provided for this security vault.'}
+                </p>
             </div>
             
             <div className="mt-auto flex items-center justify-between pt-4 border-t border-white/5">
-                <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Storage</span>
-                <div className="flex items-center gap-1 text-xs font-semibold text-indigo-400 group-hover:translate-x-1 transition-transform">
-                    View Details
+                <div className="flex items-center gap-4 text-[11px] font-medium text-[#6a6b6c]">
+                    <div className="flex items-center gap-1.5">
+                        <Key size={12} />
+                        <span>{env_count || 0} keys</span>
+                    </div>
+                    {role && (
+                        <div className="flex items-center gap-1.5">
+                            <Shield size={12} />
+                            <span className="capitalize">{role}</span>
+                        </div>
+                    )}
+                </div>
+                <div className="flex items-center gap-1 text-[11px] font-bold text-[#9c9c9d] group-hover:text-[#f9f9f9] transition-all group-hover:translate-x-1 uppercase tracking-widest">
+                    Open
                     <ArrowRight size={14} />
                 </div>
             </div>

@@ -1,12 +1,12 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Inter, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { ToastProvider } from '@/components/Toast';
 
-const geistSans = Geist({
-    variable: '--font-geist-sans',
+const inter = Inter({
+    variable: '--font-inter',
     subsets: ['latin'],
 });
 
@@ -16,8 +16,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-    title: 'Envyx — Secure Environment Variable Manager',
-    description: 'Securely store and manage your project environment variables with Envyx.',
+    title: 'Envyx — Precision Secret Management',
+    description: 'The ultra-minimal vault for environment variables. Secure by default. Local-first speed. API-ready.',
+    icons: {
+        icon: '/envyx-logo-dark.svg',
+        apple: '/envyx-logo-dark.svg',
+    },
 };
 
 export default function RootLayout({
@@ -26,9 +30,8 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}>
-            <body className="min-h-full flex flex-col bg-[#050505] text-white selection:bg-indigo-500/30">
-                <div className="fixed-bg" />
+        <html lang="en" className={`${inter.variable} ${geistMono.variable} h-full antialiased dark`}>
+            <body className="min-h-full flex flex-col bg-[#07080a] text-[#f9f9f9] selection:bg-[#FF6363]/30">
                 <ToastProvider>
                     <Navbar />
                     <main className="flex-1 overflow-x-hidden">{children}</main>

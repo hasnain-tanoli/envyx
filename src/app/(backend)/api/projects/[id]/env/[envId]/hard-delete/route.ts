@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAuthContext, getProjectAccess } from '@/lib/api-auth';
 import { db } from '@/lib/db';
-import { projects, env } from '@/db/schema';
+import { env } from '@/db/schema';
 import { and, eq } from 'drizzle-orm';
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string, envId: string }> }) {

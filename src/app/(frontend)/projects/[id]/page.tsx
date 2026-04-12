@@ -11,7 +11,7 @@ import TrashItem from '@/components/TrashItem';
 import { TokenManager } from '@/components/TokenManager';
 import { ExportPanel } from '@/components/ExportPanel';
 import { getEnvs, addEnv, deleteEnv, updateEnv, getProject, bulkImportEnvs, getTrashEnvs, restoreEnv, hardDeleteEnv, updateProject, deleteProject } from '@/lib/api';
-import { Environment, Project } from '@/types';
+import { Environment, Project, Team } from '@/types';
 import { useToast } from '@/components/Toast';
 import { useRouter } from 'next/navigation';
 import {
@@ -26,12 +26,12 @@ import {
     Rocket,
     Copy,
     Check,
-    History,
     Terminal,
     Database,
     Trash2,
     Settings as SettingsIcon,
-    Users
+    Users,
+    Activity
 } from 'lucide-react';
 import Link from 'next/link';
 import { getTeams } from '@/lib/api';
@@ -61,7 +61,7 @@ export default function ProjectDetailPage() {
     const [pendingDeleteEnvId, setPendingDeleteEnvId] = useState<string | null>(null);
     const [confirmHardDeleteOpen, setConfirmHardDeleteOpen] = useState(false);
     const [pendingHardDeleteId, setPendingHardDeleteId] = useState<string | null>(null);
-    const [availableTeams, setAvailableTeams] = useState<any[]>([]);
+    const [availableTeams, setAvailableTeams] = useState<Team[]>([]);
     const [projectSettings, setProjectSettings] = useState({ name: '', description: '', environment: '', team_id: '' as string | null });
 
     const fetchData = useCallback(async () => {
@@ -213,7 +213,6 @@ export default function ProjectDetailPage() {
         setTimeout(() => setBulkCopied(false), 2000);
     }, [envs, showToast]);
 
-    // OPTIMIZATION: Memoize filter result to prevent recalculation on every re-render
     const filteredEnvs = useMemo(() => {
         if (!Array.isArray(envs)) return [];
         if (!searchTerm) return envs;
@@ -222,9 +221,9 @@ export default function ProjectDetailPage() {
     }, [envs, searchTerm]);
 
     const envColors: Record<string, string> = {
-        production: 'bg-red-500/10 text-red-400 border-red-500/20 shadow-red-500/10',
-        staging: 'bg-amber-500/10 text-amber-400 border-amber-500/20 shadow-amber-500/10',
-        development: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20 shadow-indigo-500/10'
+        production: 'text-[#FF6363] border-[#FF6363]/20 bg-[#FF6363]/5',
+        staging: 'text-[var(--ray-yellow)] border-[var(--ray-yellow)]/20 bg-[var(--ray-yellow)]/5',
+        development: 'text-[var(--ray-blue)] border-[var(--ray-blue)]/20 bg-[var(--ray-blue)]/5'
     };
 
     const isAdmin = project?.role === 'owner' || project?.role === 'admin';
@@ -244,7 +243,7 @@ export default function ProjectDetailPage() {
             );
             showToast('Settings saved', 'success');
             fetchData();
-        } catch (error) {
+        } catch {
             showToast('Update failed', 'error');
         } finally {
             setSubmitting(false);
@@ -257,73 +256,72 @@ export default function ProjectDetailPage() {
             await deleteProject(projectId);
             showToast('Project destroyed', 'success');
             router.push('/projects');
-        } catch (err) {
+        } catch {
             showToast('Failed to delete project', 'error');
         }
     };
 
-
     return (
-        <div className="max-w-6xl mx-auto px-6 py-12">
+        <div className="max-w-6xl mx-auto px-6 py-12 animate-in fade-in duration-700">
             {/* Header Area */}
-            <div className="mb-10 flex flex-col gap-6">
-                <Link href="/projects" className="flex items-center gap-2 text-gray-500 hover:text-indigo-400 transition-colors w-fit font-medium">
-                    <ArrowLeft size={18} />
+            <div className="mb-12 flex flex-col gap-8">
+                <Link href="/projects" className="flex items-center gap-2 text-[#6a6b6c] hover:text-[#f9f9f9] transition-colors w-fit text-[11px] font-bold uppercase tracking-widest group">
+                    <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
                     Back to Projects
                 </Link>
 
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 border-b border-white/5 pb-10">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
                     <div>
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="flex items-center gap-2 text-indigo-500">
-                                <Shield size={18} />
-                                <span className="text-xs font-bold uppercase tracking-widest">Secure Vault</span>
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="flex items-center gap-2 text-[var(--ray-blue)]">
+                                <Shield size={14} />
+                                <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Secure Vault</span>
                             </div>
                             {project?.environment && (
-                                <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border shadow-sm ${envColors[project.environment] || envColors.development}`}>
+                                <span className={`text-[9px] font-bold uppercase tracking-[0.1em] px-2 py-0.5 rounded border ${envColors[project.environment] || envColors.development}`}>
                                     {project.environment}
                                 </span>
                             )}
                             {project?.role && (
-                                <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-400 shadow-sm`}>
+                                <span className={`text-[9px] font-bold uppercase tracking-[0.1em] px-2 py-0.5 rounded border border-white/5 bg-[#1b1c1e] text-[#6a6b6c]`}>
                                     {project.role}
                                 </span>
                             )}
                         </div>
-                        <h1 className="text-4xl font-black text-white tracking-tight">{project?.name || 'Loading Project...'}</h1>
-                        <p className="text-gray-500 font-medium mt-1">{project?.description || 'Manage your encrypted secrets and access history.'}</p>
+                        <h1 className="text-3xl font-medium text-[#f9f9f9] tracking-tight">{project?.name || 'Loading Vault...'}</h1>
+                        <p className="text-[#6a6b6c] text-[13px] font-medium mt-2 leading-tight max-w-lg">{project?.description || 'Manage your encrypted secrets and access history with zero-knowledge security.'}</p>
                     </div>
 
-                    <div className="flex gap-4">
+                    <div className="flex gap-3">
                         {hasMounted && activeTab === 'variables' && !isViewer && (
                             <>
                                 <button
                                     onClick={handleBulkCopy}
                                     disabled={!envs?.length || bulkCopied}
-                                    className={`glass px-5 py-3 rounded-2xl flex items-center gap-2 font-bold transition-all border ${bulkCopied ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'text-gray-300 hover:text-white hover:bg-white/10 border-white/5 disabled:opacity-30'}`}
+                                    className={`pill-button px-4 py-2 text-[10px] ${bulkCopied ? 'text-[#3BD671]' : 'text-[#6a6b6c] hover:text-[#f9f9f9]'}`}
                                 >
-                                    {bulkCopied ? <Check size={18} /> : <Copy size={18} />}
-                                    {bulkCopied ? 'Copied' : 'Bulk Copy'}
+                                    {bulkCopied ? <Check size={14} className="mr-2" /> : <Copy size={14} className="mr-2" />}
+                                    {bulkCopied ? 'Copied' : 'Copy All'}
                                 </button>
                                 <button
                                     onClick={() => setBulkOpen(true)}
-                                    className="glass px-5 py-3 rounded-2xl flex items-center gap-2 font-bold text-gray-300 hover:text-white hover:bg-white/10 transition-all border-white/5"
+                                    className="pill-button px-4 py-2 text-[10px] text-[#6a6b6c] hover:text-[#f9f9f9]"
                                 >
-                                    <FileText size={18} />
+                                    <FileText size={14} className="mr-2" />
                                     Bulk Import
                                 </button>
                                 <button
                                     onClick={() => setSingleOpen(true)}
-                                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-2xl flex items-center gap-2 font-bold shadow-xl shadow-indigo-600/20 active:scale-95 transition-all"
+                                    className="pill-button pill-button-primary px-5 py-2 text-[10px]"
                                 >
-                                    <Plus size={18} />
-                                    Add Single
+                                    <Plus size={14} className="mr-2" />
+                                    Add Secret
                                 </button>
                             </>
                         )}
                         {isViewer && activeTab === 'variables' && (
-                            <div className="flex items-center gap-2 text-amber-400 bg-amber-400/10 px-4 py-2 rounded-xl border border-amber-400/20 text-xs font-bold uppercase tracking-widest">
-                                <AlertCircle size={14} />
+                            <div className="flex items-center gap-2 text-[var(--ray-yellow)] bg-[var(--ray-yellow)]/5 px-4 py-2 rounded-lg border border-[var(--ray-yellow)]/10 text-[9px] font-bold uppercase tracking-[0.2em]">
+                                <AlertCircle size={12} />
                                 View Only Mode
                             </div>
                         )}
@@ -332,72 +330,72 @@ export default function ProjectDetailPage() {
             </div>
 
             {/* Tab Switcher */}
-            <div className="flex gap-2 mb-6 bg-white/5 p-1.5 rounded-2xl w-fit border border-white/5 backdrop-blur-sm overflow-x-auto max-w-full">
+            <div className="flex gap-1 mb-8 border-b border-white/5 overflow-x-auto no-scrollbar">
                 {[
                     { id: 'variables', icon: Database, label: 'Variables' },
-                    { id: 'activity', icon: History, label: 'Activity' },
-                    { id: 'connect', icon: Terminal, label: 'Connect CLI' },
-                    { id: 'access', icon: Shield, label: 'Access & Export' },
+                    { id: 'activity', icon: Activity, label: 'Activity' },
+                    { id: 'connect', icon: Terminal, label: 'CLI' },
+                    { id: 'access', icon: Shield, label: 'Export' },
                     { id: 'trash', icon: Trash2, label: 'Trash' },
                     ...(isAdmin ? [{ id: 'settings', icon: SettingsIcon, label: 'Settings' }] : [])
                 ].map(tab => (
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id as Tab)}
-                        className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === tab.id
-                            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
-                            : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'
+                        className={`flex items-center gap-2 px-5 py-3 text-[11px] font-bold uppercase tracking-[0.15em] transition-all border-b-2 ${activeTab === tab.id
+                            ? 'text-[#f9f9f9] border-[var(--ray-blue)]'
+                            : 'text-[#6a6b6c] border-transparent hover:text-[#f9f9f9]'
                             }`}
                     >
-                        <tab.icon size={16} />
+                        <tab.icon size={13} />
                         {tab.label}
                     </button>
                 ))}
             </div>
 
             {/* Content Area */}
-            <div className="glass rounded-[2rem] p-4 sm:p-8 overflow-hidden min-h-[400px]">
+            <div className="min-h-[500px]">
                 {loading ? (
-                    <div className="flex flex-col items-center justify-center py-24 gap-4">
-                        <Loader2 className="text-indigo-500 animate-spin" size={40} />
-                        <p className="text-gray-500 font-medium tracking-tight">Accessing Secure Vault...</p>
+                    <div className="flex flex-col items-center justify-center py-32 gap-6">
+                        <Loader2 className="text-[var(--ray-blue)] animate-spin" size={32} />
+                        <p className="text-[#6a6b6c] text-[11px] font-bold uppercase tracking-[0.2em]">Synchronizing Vault...</p>
                     </div>
                 ) : error ? (
-                    <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
-                        <div className="p-4 rounded-2xl bg-red-500/10 text-red-400 shadow-inner">
-                            <AlertCircle size={40} />
+                    <div className="ray-card p-20 flex flex-col items-center justify-center text-center gap-8">
+                        <div className="p-4 rounded-xl bg-[#FF6363]/5 text-[#FF6363] border border-[#FF6363]/10 shadow-inner">
+                            <AlertCircle size={32} />
                         </div>
                         <div>
-                            <h3 className="text-white font-bold text-lg">Vault Connection Error</h3>
-                            <p className="text-gray-500 mt-1 max-w-sm">{error}</p>
+                            <h3 className="text-[#f9f9f9] font-medium text-lg">Vault Connection Error</h3>
+                            <p className="text-[#6a6b6c] text-[13px] mt-2 max-w-sm font-medium leading-relaxed">{error}</p>
                         </div>
                         <button
                             onClick={fetchData}
-                            className="mt-4 px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-indigo-600/20"
+                            className="pill-button pill-button-primary px-8 py-2.5 text-[10px]"
                         >
                             Retry Handshake
                         </button>
                     </div>
                 ) : activeTab === 'variables' ? (
                     <>
-                        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8 px-2">
-                            <div className="relative w-full sm:max-w-xs">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+                        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-8">
+                            <div className="relative w-full sm:max-w-xs group">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6a6b6c] group-focus-within:text-[var(--ray-blue)] transition-colors" size={16} />
                                 <input
                                     type="text"
                                     placeholder="Search encrypted keys..."
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all placeholder:text-gray-600 font-medium"
+                                    className="w-full bg-[#101111] border border-white/5 rounded-lg pl-11 pr-4 py-2.5 text-[13px] text-[#f9f9f9] focus:outline-none focus:border-[var(--ray-blue)]/30 transition-all placeholder:text-[#6a6b6c]/40 font-medium"
                                     value={searchTerm}
                                     onChange={e => setSearchTerm(e.target.value)}
                                 />
                             </div>
-                            <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] bg-white/5 px-4 py-2 rounded-lg border border-white/5">
+                            <div className="text-[9px] font-bold text-[#6a6b6c] uppercase tracking-[0.2em] bg-[#101111] px-4 py-2 rounded-lg border border-white/5 shadow-inner">
                                 {filteredEnvs.length} Records found
                             </div>
                         </div>
 
                         {filteredEnvs.length > 0 ? (
-                            <div className="flex flex-col gap-3">
+                            <div className="flex flex-col gap-2">
                                 {filteredEnvs.map(e => (
                                     <EnvItem
                                         key={e.id}
@@ -412,12 +410,12 @@ export default function ProjectDetailPage() {
                                 ))}
                             </div>
                         ) : (
-                            <div className="text-center py-32 flex flex-col items-center gap-4">
-                                <div className="p-4 rounded-2xl bg-indigo-500/5 text-indigo-400/50">
-                                    <AlertCircle size={40} />
+                            <div className="ray-card p-32 text-center flex flex-col items-center gap-6">
+                                <div className="p-4 rounded-xl bg-[#1b1c1e] text-[#6a6b6c] border border-white/5 shadow-inner">
+                                    <Database size={32} />
                                 </div>
-                                <p className="text-gray-500 font-medium max-w-xs mx-auto">
-                                    {searchTerm ? `No variables matching "${searchTerm}"` : "This vault is empty. Start adding secure variables."}
+                                <p className="text-[#6a6b6c] text-[13px] font-medium max-w-xs mx-auto leading-relaxed">
+                                    {searchTerm ? `No records matching "${searchTerm}"` : "This cryptographic vault is currently empty."}
                                 </p>
                             </div>
                         )}
@@ -427,32 +425,32 @@ export default function ProjectDetailPage() {
                 ) : activeTab === 'connect' ? (
                     <ConnectPanel projectId={projectId} />
                 ) : activeTab === 'access' ? (
-                    <div className="space-y-8">
+                    <div className="space-y-12">
                         <ExportPanel projectId={projectId} />
                         {!isViewer && <TokenManager projectId={projectId} />}
                     </div>
                 ) : activeTab === 'settings' ? (
-                    <div className="max-w-2xl">
-                        <div className="mb-10">
-                            <h3 className="text-2xl font-bold text-white mb-2">Project Settings</h3>
-                            <p className="text-gray-400">Manage environment type and team ownership.</p>
+                    <div className="max-w-xl mx-auto py-8">
+                        <div className="mb-12">
+                            <h3 className="text-xl font-medium text-[#f9f9f9] mb-2 tracking-tight">Vault Configuration</h3>
+                            <p className="text-[#6a6b6c] text-[13px] font-medium">Manage deployment target and organizational access.</p>
                         </div>
 
                         <form onSubmit={handleUpdateSettings} className="space-y-8">
                             <div className="space-y-2">
-                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Project Name</label>
+                                <label className="block text-[10px] font-bold text-[#6a6b6c] uppercase tracking-[0.2em] ml-1">Project Name</label>
                                 <input
                                     type="text"
-                                    className="w-full glass bg-[#0f1117] border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all font-medium"
+                                    className="w-full bg-[#101111] border border-white/5 rounded-lg px-4 py-3 text-[13px] text-[#f9f9f9] focus:outline-none focus:border-[var(--ray-blue)]/50 transition-all font-medium"
                                     value={projectSettings.name}
                                     onChange={e => setProjectSettings(prev => ({ ...prev, name: e.target.value }))}
                                 />
                             </div>
 
                             <div className="space-y-2">
-                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Environment Target</label>
+                                <label className="block text-[10px] font-bold text-[#6a6b6c] uppercase tracking-[0.2em] ml-1">Environment Tier</label>
                                 <select
-                                    className="w-full glass bg-[#0f1117] border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all font-medium appearance-none"
+                                    className="w-full bg-[#101111] border border-white/5 rounded-lg px-4 py-3 text-[13px] text-[#f9f9f9] focus:outline-none focus:border-[var(--ray-blue)]/50 transition-all font-medium appearance-none cursor-pointer"
                                     value={projectSettings.environment}
                                     onChange={e => setProjectSettings(prev => ({ ...prev, environment: e.target.value }))}
                                 >
@@ -463,32 +461,32 @@ export default function ProjectDetailPage() {
                             </div>
 
                             <div className="space-y-2">
-                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Team Ownership</label>
-                                <div className="p-1 glass bg-[#0f1117] border-white/10 rounded-2xl flex items-center">
-                                    <div className="flex-1 px-4 py-3 flex items-center gap-3">
-                                        <Users className="text-indigo-400" size={18} />
-                                        <select
-                                            className="bg-transparent text-white focus:outline-none w-full appearance-none cursor-pointer"
-                                            value={projectSettings.team_id || ''}
-                                            onChange={e => setProjectSettings(prev => ({ ...prev, team_id: e.target.value || null }))}
-                                        >
-                                            <option value="">Personal Project</option>
-                                            {availableTeams.map(t => (
-                                                <option key={t.id} value={t.id}>{t.name} (@{t.slug})</option>
-                                            ))}
-                                        </select>
+                                <label className="block text-[10px] font-bold text-[#6a6b6c] uppercase tracking-[0.2em] ml-1">Team Ownership</label>
+                                <div className="bg-[#101111] border border-white/5 rounded-lg flex items-center group focus-within:border-[var(--ray-blue)]/50 transition-all">
+                                    <div className="pl-4 text-[#6a6b6c] group-focus-within:text-[var(--ray-blue)] transition-colors">
+                                        <Users size={16} />
                                     </div>
+                                    <select
+                                        className="bg-transparent text-[#f9f9f9] text-[13px] font-medium focus:outline-none w-full px-4 py-3 appearance-none cursor-pointer"
+                                        value={projectSettings.team_id || ''}
+                                        onChange={e => setProjectSettings(prev => ({ ...prev, team_id: e.target.value || null }))}
+                                    >
+                                        <option value="">Personal Vault (No Team)</option>
+                                        {availableTeams.map(t => (
+                                            <option key={t.id} value={t.id}>{t.name} (@{t.slug})</option>
+                                        ))}
+                                    </select>
                                 </div>
-                                <p className="text-[10px] text-gray-500 mt-2 px-1 italic">Moving to a team will share these secrets with all team members according to their roles.</p>
+                                <p className="text-[10px] text-[#6a6b6c] mt-3 font-medium italic px-1 opacity-70">Transferring to a team will migrate all cryptographic nodes to the organizational keychain.</p>
                             </div>
 
-                            <div className="pt-4 flex gap-4">
+                            <div className="pt-6 flex flex-col sm:flex-row gap-4">
                                 <button
                                     type="submit"
                                     disabled={submitting}
-                                    className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl font-bold transition-all shadow-lg shadow-indigo-600/20 active:scale-95 flex items-center gap-2"
+                                    className="pill-button pill-button-primary flex-1 py-3 text-[10px]"
                                 >
-                                    {submitting ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                                    {submitting ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} className="mr-2" />}
                                     Save Configuration
                                 </button>
 
@@ -496,11 +494,11 @@ export default function ProjectDetailPage() {
                                     <button
                                         type="button"
                                         onClick={() => {
-                                            if (confirm('Are you SURE you want to delete this project? This cannot be undone.')) {
+                                            if (confirm('Are you SURE you want to destroy this vault? This action is irreversible.')) {
                                                 handleDeleteProject();
                                             }
                                         }}
-                                        className="px-8 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl font-bold transition-all"
+                                        className="pill-button px-8 py-3 text-[10px] text-[#FF6363] border-[#FF6363]/20 bg-[#FF6363]/5 hover:bg-[#FF6363]/10"
                                     >
                                         Destroy Vault
                                     </button>
@@ -510,12 +508,12 @@ export default function ProjectDetailPage() {
                     </div>
                 ) : (
                     <>
-                        <div className="mb-6 px-2">
-                            <h3 className="text-xl font-bold text-white mb-2">Trash</h3>
-                            <p className="text-sm text-gray-400">Soft-deleted variables are kept here. You can restore them to active use, or permanently delete them along with their audit history.</p>
+                        <div className="mb-10">
+                            <h3 className="text-xl font-medium text-[#f9f9f9] mb-2 tracking-tight">Soft-Deleted Variables</h3>
+                            <p className="text-[13px] text-[#6a6b6c] font-medium leading-tight">Variables kept in trash can be restored or purged permanently.</p>
                         </div>
                         {trashEnvs.length > 0 ? (
-                            <div className="flex flex-col gap-3">
+                            <div className="flex flex-col gap-2">
                                 {trashEnvs.map(e => (
                                     <TrashItem
                                         key={e.id}
@@ -529,11 +527,11 @@ export default function ProjectDetailPage() {
                                 ))}
                             </div>
                         ) : (
-                            <div className="text-center py-32 flex flex-col items-center gap-4">
-                                <div className="p-4 rounded-2xl bg-gray-500/5 text-gray-400/50">
-                                    <Trash2 size={40} />
+                            <div className="ray-card p-32 text-center flex flex-col items-center gap-6">
+                                <div className="p-4 rounded-xl bg-[#1b1c1e] text-[#6a6b6c] border border-white/5 shadow-inner">
+                                    <Trash2 size={32} />
                                 </div>
-                                <p className="text-gray-500 font-medium">Your trash is empty.</p>
+                                <p className="text-[#6a6b6c] text-[13px] font-medium">Your cryptographic trash is currently empty.</p>
                             </div>
                         )}
                     </>
@@ -543,29 +541,32 @@ export default function ProjectDetailPage() {
 
             {/* Single Add Modal */}
             <Modal isOpen={singleOpen} onClose={() => setSingleOpen(false)}>
-                <div className="mb-8 text-center px-4">
-                    <h2 className="text-3xl font-black text-white tracking-tight">New Secret</h2>
-                    <p className="text-gray-500 text-sm mt-2 font-medium">Your data will be encrypted before it leaves this client.</p>
+                <div className="mb-12 text-center px-4">
+                    <div className="w-12 h-12 bg-[#1b1c1e] rounded-xl flex items-center justify-center text-[var(--ray-blue)] mx-auto mb-6 border border-white/5 shadow-inner">
+                        <Database size={22} />
+                    </div>
+                    <h2 className="text-2xl font-medium text-[#f9f9f9] tracking-tight">Add Secret</h2>
+                    <p className="text-[#6a6b6c] text-[13px] mt-2 font-medium leading-tight">Data is encrypted locally before transmission.</p>
                 </div>
                 <form onSubmit={handleAddSingle} className="space-y-6">
                     <div className="space-y-2">
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Key Name</label>
+                        <label className="block text-[10px] font-bold text-[#6a6b6c] uppercase tracking-[0.2em] ml-1">Key Name</label>
                         <input
                             type="text"
                             required
-                            placeholder="DATABASE_URL"
-                            className="w-full glass bg-white/5 border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all font-mono text-sm placeholder:text-gray-700"
+                            placeholder="e.g. STRIPE_SECRET_KEY"
+                            className="w-full bg-[#07080a] border border-white/5 rounded-lg px-4 py-3 text-[13px] text-[#f9f9f9] focus:outline-none focus:border-[var(--ray-blue)]/50 transition-all font-mono placeholder:text-[#6a6b6c]/40 uppercase"
                             value={newEnv.key}
-                            onChange={e => setNewEnv(prev => ({ ...prev, key: e.target.value.toUpperCase() }))}
+                            onChange={e => setNewEnv(prev => ({ ...prev, key: e.target.value }))}
                         />
                     </div>
                     <div className="space-y-2">
-                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Secret Value</label>
+                        <label className="block text-[10px] font-bold text-[#6a6b6c] uppercase tracking-[0.2em] ml-1">Secret Value</label>
                         <input
                             type="password"
                             required
                             placeholder="••••••••••••••••"
-                            className="w-full glass bg-white/5 border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all font-mono text-sm placeholder:text-gray-700"
+                            className="w-full bg-[#07080a] border border-white/5 rounded-lg px-4 py-3 text-[13px] text-[#f9f9f9] focus:outline-none focus:border-[var(--ray-blue)]/50 transition-all font-mono placeholder:text-[#6a6b6c]/40"
                             value={newEnv.value}
                             onChange={e => setNewEnv(prev => ({ ...prev, value: e.target.value }))}
                         />
@@ -573,27 +574,30 @@ export default function ProjectDetailPage() {
                     <button
                         type="submit"
                         disabled={submitting}
-                        className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white py-4 rounded-2xl font-bold text-lg shadow-xl shadow-indigo-600/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                        className="pill-button pill-button-primary w-full py-3.5 text-[10px] mt-4"
                     >
-                        {submitting ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
-                        {submitting ? 'Performing Handshake...' : 'Seal & Store'}
+                        {submitting ? <Loader2 className="animate-spin mr-2" size={16} /> : <Save size={16} className="mr-2" />}
+                        {submitting ? 'Encrypting...' : 'Seal & Store'}
                     </button>
                 </form>
             </Modal>
 
             {/* Bulk Add Modal */}
             <Modal isOpen={bulkOpen} onClose={() => setBulkOpen(false)}>
-                <div className="mb-8 text-center px-4">
-                    <h2 className="text-3xl font-black text-white tracking-tight">Bulk .env Import</h2>
-                    <p className="text-gray-500 text-sm mt-2 font-medium">Paste your raw .env file content below. We&apos;ll parse and encrypt each key individually.</p>
+                <div className="mb-10 text-center px-4">
+                    <div className="w-12 h-12 bg-[#1b1c1e] rounded-xl flex items-center justify-center text-[var(--ray-blue)] mx-auto mb-6 border border-white/5 shadow-inner">
+                        <FileText size={22} />
+                    </div>
+                    <h2 className="text-2xl font-medium text-[#f9f9f9] tracking-tight">Bulk Import</h2>
+                    <p className="text-[#6a6b6c] text-[13px] mt-2 font-medium leading-tight">Paste your .env raw text below. We will parse and seal each node.</p>
                 </div>
                 <form onSubmit={handleAddBulk} className="space-y-6">
                     <div className="relative">
                         <textarea
-                            rows={12}
+                            rows={10}
                             required
-                            placeholder="DB_URI=postgres://...&#10;API_KEY=sk_test_..."
-                            className="w-full glass bg-white/5 border-white/10 rounded-2xl px-5 py-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all font-mono text-xs placeholder:text-gray-700 leading-relaxed resize-none scrollbar-hide"
+                            placeholder="STRIPE_SECRET=sk_live_...&#10;AWS_REGION=us-east-1"
+                            className="w-full bg-[#07080a] border border-white/5 rounded-lg px-4 py-3 text-[12px] text-[#f9f9f9] focus:outline-none focus:border-[var(--ray-blue)]/50 transition-all font-mono placeholder:text-[#6a6b6c]/40 leading-relaxed resize-none no-scrollbar"
                             value={envFile}
                             onChange={e => setEnvFile(e.target.value)}
                         />
@@ -601,18 +605,18 @@ export default function ProjectDetailPage() {
                     <button
                         type="submit"
                         disabled={submitting}
-                        className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white py-4 rounded-2xl font-bold text-lg shadow-xl shadow-indigo-600/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                        className="pill-button pill-button-primary w-full py-4 text-[10px] mt-4"
                     >
-                        {submitting ? <Loader2 className="animate-spin" size={20} /> : <Rocket size={20} />}
-                        {submitting ? 'Processing Batch...' : 'Import Batch'}
+                        {submitting ? <Loader2 className="animate-spin mr-2" size={16} /> : <Rocket size={16} className="mr-2" />}
+                        {submitting ? 'Sealing Records...' : 'Import Batch'}
                     </button>
                 </form>
             </Modal>
 
             <ConfirmDialog
                 isOpen={confirmEnvOpen}
-                title="Delete Variable?"
-                message="This will move this variable to the Trash. You can restore it later if needed."
+                title="Move to Trash?"
+                message="This will deactivate the secret and move it to the trash vault. You can restore it later if needed."
                 confirmLabel="Move to Trash"
                 cancelLabel="Cancel"
                 variant="danger"
@@ -622,9 +626,9 @@ export default function ProjectDetailPage() {
 
             <ConfirmDialog
                 isOpen={confirmHardDeleteOpen}
-                title="Permanently Delete?"
-                message="This will completely wipe out this variable and its entire audit history from the database. This action cannot be reversed."
-                confirmLabel="Delete Forever"
+                title="Wipe Forever?"
+                message="This will completely purge this record and its entire audit lineage. This action is irreversible."
+                confirmLabel="Purge Forever"
                 cancelLabel="Cancel"
                 variant="danger"
                 onConfirm={executeHardDelete}

@@ -42,50 +42,50 @@ function EnvItem({ id, keyName, value, error, onDelete, onUpdate, disabled }: En
 
     if (isEditing) {
         return (
-            <div className="group glass-item bg-indigo-500/5 border-indigo-500/20 p-4 rounded-2xl flex flex-col gap-4">
-                <div className="flex flex-col sm:flex-row gap-4">
-                    <div className="flex-1">
-                        <label className="block text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1 shadow-sm">Key</label>
+            <div className="ray-card p-5 flex flex-col gap-5 border-[#FF6363]/20 bg-[#101111]">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-[#FF6363] uppercase tracking-widest px-1">Key Name</label>
                         <input 
                             type="text" 
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono transition-all"
+                            className="w-full bg-[#07080a] border border-white/5 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#FF6363]/50 font-mono transition-all"
                             value={editKey}
                             onChange={e => setEditKey(e.target.value.toUpperCase())}
                         />
                     </div>
-                    <div className="flex-1">
-                        <label className="block text-[10px] font-bold text-indigo-400 uppercase tracking-widest mb-1">Value</label>
+                    <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-[#FF6363] uppercase tracking-widest px-1">Secret Value</label>
                         <div className="relative">
                             <input 
                                 type={revealed ? "text" : "password"} 
-                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono transition-all pr-10"
+                                className="w-full bg-[#07080a] border border-white/5 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#FF6363]/50 font-mono transition-all pr-12"
                                 value={editValue}
                                 onChange={e => setEditValue(e.target.value)}
                             />
                             <button 
                                 onClick={() => setRevealed(!revealed)}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-white"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-[#6a6b6c] hover:text-[#f9f9f9]"
                                 type="button"
                             >
-                                {revealed ? <EyeOff size={14} /> : <Eye size={14} />}
+                                {revealed ? <EyeOff size={16} /> : <Eye size={16} />}
                             </button>
                         </div>
                     </div>
                 </div>
-                <div className="flex justify-end gap-2 pt-2 border-t border-white/5">
+                <div className="flex justify-end items-center gap-4 pt-4 border-t border-white/5">
                     <button 
                         onClick={() => setIsEditing(false)}
-                        className="px-4 py-2 text-xs font-bold text-gray-500 hover:text-white transition-colors"
+                        className="text-xs font-bold text-[#6a6b6c] hover:text-[#f9f9f9] transition-colors"
                     >
                         Cancel
                     </button>
                     <button 
                         onClick={handleSave}
                         disabled={saving}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-lg shadow-indigo-600/20 flex items-center gap-2 transition-all disabled:opacity-50"
+                        className="pill-button pill-button-primary text-xs py-2 px-6 disabled:opacity-50"
                     >
-                        {saving ? <Loader2 className="animate-spin" size={12} /> : <Check size={12} />}
-                        {saving ? 'Saving...' : 'Save Changes'}
+                        {saving ? <Loader2 className="animate-spin mr-2" size={14} /> : <Check className="mr-2" size={14} />}
+                        {saving ? 'Encrypting...' : 'Update Secret'}
                     </button>
                 </div>
             </div>
@@ -93,52 +93,52 @@ function EnvItem({ id, keyName, value, error, onDelete, onUpdate, disabled }: En
     }
 
     return (
-        <div className="group glass-item bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/20 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all">
+        <div className="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors">
             <div className="flex flex-col gap-1 min-w-0 pr-4">
-                <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest">{keyName}</span>
+                <span className="text-[11px] font-bold text-[var(--ray-blue)] uppercase tracking-wider">{keyName}</span>
                 <div className="flex items-center gap-2 font-mono text-sm overflow-hidden">
-                    {error && <AlertTriangle className="text-red-400 shrink-0" size={14} />}
-                    <span className={`transition-all duration-300 truncate ${error ? 'text-red-400/80 italic font-sans' : revealed ? 'text-gray-200' : 'text-gray-600 blur-sm select-none'}`}>
-                        {error ? value : (revealed ? value : '••••••••••••••••')}
+                    {error && <AlertTriangle className="text-[#FF6363] shrink-0" size={12} />}
+                    <span className={`transition-all duration-300 truncate ${error ? 'text-[#FF6363]/80 italic' : revealed ? 'text-[#cecece]' : 'text-white/20 blur-[3px] select-none cursor-default'}`}>
+                        {error ? value : (revealed ? value : '••••••••••••••••••••')}
                     </span>
                 </div>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1.5 shrink-0 transition-opacity duration-200 group-hover:opacity-100 opacity-60">
                 <button 
                     onClick={() => setRevealed(!revealed)}
-                    className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-all"
-                    title={revealed ? 'Hide Value' : 'Show Value'}
+                    className="p-2 text-[#6a6b6c] hover:text-[#f9f9f9] transition-colors"
+                    title={revealed ? 'Hide' : 'Show'}
                 >
-                    {revealed ? <EyeOff size={18} /> : <Eye size={18} />}
+                    {revealed ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
                 
                 <button 
                     onClick={handleCopy}
-                    className={`p-2 rounded-xl transition-all ${copied ? 'text-green-400 bg-green-400/10' : 'text-gray-400 hover:text-white hover:bg-white/10'}`}
-                    title="Copy as KEY=VALUE"
+                    className={`p-2 transition-colors ${copied ? 'text-[var(--ray-green)]' : 'text-[#6a6b6c] hover:text-[#f9f9f9]'}`}
+                    title="Copy"
                 >
-                    {copied ? <Check size={18} /> : <Copy size={18} />}
+                    {copied ? <Check size={16} /> : <Copy size={16} />}
                 </button>
 
                 {!disabled && (
                     <>
-                        <div className="w-[1px] h-6 bg-white/10 mx-1" />
+                        <div className="w-[1px] h-4 bg-white/10 mx-1" />
 
                         <button 
                             onClick={() => setIsEditing(true)}
-                            className="p-2 text-gray-400 hover:text-indigo-400 hover:bg-indigo-400/10 rounded-xl transition-all"
-                            title="Edit Variable"
+                            className="p-2 text-[#6a6b6c] hover:text-[#f9f9f9] transition-colors"
+                            title="Edit"
                         >
-                            <Edit2 size={18} />
+                            <Edit2 size={16} />
                         </button>
 
                         <button 
                             onClick={() => onDelete?.(id)}
-                            className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded-xl transition-all"
-                            title="Delete Variable"
+                            className="p-2 text-[#6a6b6c] hover:text-[#FF6363] transition-colors"
+                            title="Delete"
                         >
-                            <Trash2 size={18} />
+                            <Trash2 size={16} />
                         </button>
                     </>
                 )}

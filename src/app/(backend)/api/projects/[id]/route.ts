@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAuthContext, getProjectAccess } from '@/lib/api-auth';
 import { db } from '@/lib/db';
 import { projects } from '@/db/schema';
-import { and, eq, isNull } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { projectUpdateSchema, validationErrorResponse } from '@/db/schema';
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
